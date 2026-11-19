@@ -1,0 +1,1268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b1110">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Rugby Referee Coach</title>
+<meta name="apple-mobile-web-app-title" content="Ref Coach">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#0b1110;--panel:#121b1a;--panel2:#1a2625;--panel3:#223230;--text:#eef4f2;--muted:#94a7a3;--line:#2a3b39;
+  --accent:#2ee59d;--accentText:#04140d;--home:#4aa3ff;--away:#ff7350;--pos:#34d77b;--neg:#ff5f5f;--info:#f4c542;
+  --hid:#c49bff;--nd:#93bce6;--err:#ff9f43;--yc:#ffd60a;--rc:#ff3b3b;--pitch:#14532d;--pitchLine:#e8fff2;--shadow:0 1px 0 rgba(255,255,255,.03),0 6px 20px rgba(0,0,0,.35);
+  --r:14px;--hd:"Barlow Condensed",system-ui,sans-serif;--bd:"Barlow",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+[data-theme="sun"]{
+  --bg:#ffffff;--panel:#f1f4f3;--panel2:#e2e8e6;--panel3:#d3dbd8;--text:#000;--muted:#2c3836;--line:#8d9b98;
+  --accent:#006b3c;--accentText:#fff;--home:#0040b0;--away:#b8230a;--pos:#06702c;--neg:#bf0000;--info:#7a5a00;
+  --hid:#5b21b6;--nd:#1e4e8c;--err:#9a4700;--yc:#e0b400;--rc:#c40000;--pitch:#1f7a3f;--pitchLine:#ffffff;--shadow:0 1px 2px rgba(0,0,0,.15);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--bd);font-size:16px;line-height:1.4}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none}
+h1,h2,h3{font-family:var(--hd);letter-spacing:.02em;margin:0}
+.wrap{max-width:1280px;margin:0 auto;padding:12px 12px 96px}
+/* top bar */
+.top{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--line)}
+.top .in{max-width:1280px;margin:0 auto;display:flex;align-items:center;gap:10px;padding:8px 12px}
+.logo{width:34px;height:34px;border-radius:9px;background:var(--accent);display:grid;place-items:center;color:var(--accentText);flex:none}
+.brand{min-width:0;flex:1}
+.brand h1{font-size:20px;line-height:1}
+.brand .m{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.miniclock{font-family:var(--hd);font-size:22px;font-variant-numeric:tabular-nums;padding:2px 10px;border-radius:8px;background:var(--panel2)}
+.miniclock.run{background:var(--accent);color:var(--accentText)}
+.iconbtn{width:40px;height:40px;border-radius:10px;background:var(--panel2);display:grid;place-items:center;flex:none}
+.savedot{width:9px;height:9px;border-radius:50%;background:var(--pos);flex:none}
+.savedot.bad{background:var(--neg)}
+/* nav */
+nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:30;background:var(--panel);border-top:1px solid var(--line);display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom)}
+nav.tabs .in{display:flex;width:100%;max-width:760px}
+nav.tabs a{flex:1;text-align:center;padding:8px 2px 9px;color:var(--muted);text-decoration:none;font-family:var(--hd);font-size:14px;letter-spacing:.04em;text-transform:uppercase;display:flex;flex-direction:column;align-items:center;gap:2px;min-height:58px;justify-content:center}
+nav.tabs a svg{width:22px;height:22px}
+nav.tabs a.on{color:var(--accent);box-shadow:inset 0 3px 0 var(--accent)}
+/* generic */
+.view{display:none}.view.on{display:block}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px;box-shadow:var(--shadow)}
+.card+.card{margin-top:12px}
+.card h2{font-size:22px;margin-bottom:10px}
+.card h3{font-size:18px;margin:4px 0 8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.grid2{display:grid;grid-template-columns:1fr;gap:12px}
+@media (min-width:760px){.grid2{grid-template-columns:1fr 1fr}}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+label.f{display:block;font-size:13px;color:var(--muted);margin:0 0 4px;text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+input[type=text],input[type=date],input[type=number],select,textarea{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:11px 12px;min-height:46px;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 35%,transparent)}
+textarea{min-height:76px;resize:vertical}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fgrid .full{grid-column:1/-1}
+@media (min-width:900px){.fgrid{grid-template-columns:repeat(3,1fr)}}
+.seg{display:flex;background:var(--panel2);border-radius:12px;padding:4px;gap:4px;border:1px solid var(--line)}
+.seg button{flex:1;padding:10px 6px;border-radius:9px;font-family:var(--hd);font-size:18px;letter-spacing:.03em;min-height:44px}
+.seg button.on{background:var(--accent);color:var(--accentText)}
+a.btn{color:inherit;text-decoration:none}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 16px;border-radius:11px;background:var(--panel2);border:1px solid var(--line);font-weight:600;min-height:46px}
+.btn.pri{background:var(--accent);color:var(--accentText);border-color:transparent}
+.btn.danger{color:var(--neg)}
+.btn.sm{min-height:36px;padding:6px 12px;font-size:14px}
+.btn:disabled{opacity:.45}
+.pill{display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:26px;padding:0 8px;border-radius:99px;font-weight:700;font-size:14px;font-family:var(--hd)}
+.t-pos{background:color-mix(in srgb,var(--pos) 22%,transparent);color:var(--pos)}
+.t-neg{background:color-mix(in srgb,var(--neg) 22%,transparent);color:var(--neg)}
+.t-info{background:color-mix(in srgb,var(--info) 22%,transparent);color:var(--info)}
+.c-home{color:var(--home)}.c-away{color:var(--away)}
+/* live */
+.live{display:grid;gap:12px;grid-template-columns:1fr}
+@media (min-width:860px){.live{grid-template-columns:minmax(360px,0.95fr) 1.25fr}.live .recent{grid-column:1/-1}}
+.clockcard{text-align:center}
+.halfbadge{display:inline-block;font-family:var(--hd);text-transform:uppercase;letter-spacing:.1em;font-size:15px;padding:3px 12px;border-radius:99px;background:var(--panel2);color:var(--muted)}
+.clock{font-family:var(--hd);font-weight:700;font-size:clamp(64px,17vw,104px);line-height:1;font-variant-numeric:tabular-nums;margin:6px 0 2px}
+.clock .ot{font-size:.42em;color:var(--info);vertical-align:top;margin-left:4px}
+.clocksub{color:var(--muted);font-size:14px;margin-bottom:10px}
+.clocksub b{color:var(--info);font-variant-numeric:tabular-nums}
+.cbtns{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:8px}
+.cbtns>*{min-width:0}
+#startBtn:not(.pri){background:var(--info);color:#000;border-color:transparent}
+.cbtns .big{grid-row:span 2;font-size:26px;font-family:var(--hd);letter-spacing:.04em;min-height:100px}
+.cbtns .btn{font-family:var(--hd);font-size:17px;letter-spacing:.03em}
+.cbtns .btn.inj.on{background:var(--info);color:#000}
+.adj{display:flex;gap:6px;justify-content:center;margin-top:8px}
+.adj .btn{min-height:34px;padding:4px 10px;font-size:13px}
+.board{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:6px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.board .tn{font-family:var(--hd);font-size:20px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.board .sc{font-family:var(--hd);font-size:58px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.board .dash{font-family:var(--hd);font-size:36px;color:var(--muted)}
+.scbtns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-top:10px}
+.scbtns .col{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
+.scbtns .col>*{min-width:0}
+.scbtns button{background:var(--panel2);border:1px solid var(--line);border-radius:9px;min-height:48px;font-family:var(--hd);font-size:17px;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+.scbtns button small{font-size:11px;color:var(--muted);font-family:var(--bd);margin-top:2px}
+.scbtns .home button{border-bottom:3px solid var(--home)}
+.scbtns .away button{border-bottom:3px solid var(--away)}
+.penrow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin-bottom:12px}
+.penbtn{border-radius:13px;min-height:78px;font-family:var(--hd);font-size:22px;letter-spacing:.03em;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.05}
+.penbtn small{font-family:var(--bd);font-size:13px;opacity:.9;margin-top:3px}
+.penbtn.home{background:var(--home)}.penbtn.away{background:var(--away)}
+.penbtn.fk{min-height:58px;font-size:19px;border:2px solid;background:var(--panel2)}
+.penbtn.fk.home{color:var(--home);border-color:var(--home);background:color-mix(in srgb,var(--home) 14%,var(--panel2))}
+.penbtn.fk.away{color:var(--away);border-color:var(--away);background:color-mix(in srgb,var(--away) 14%,var(--panel2))}
+.penbtn.fk small{color:var(--text)}
+.dcrow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-bottom:12px}
+.dcrow .dcbtn small{font-size:11px;text-align:center;padding:0 2px}
+@media (max-width:480px){.dcrow .dcbtn{font-size:21px}.dcrow .dcbtn small{font-size:9.5px}}
+.dcbtn{min-height:62px;border-radius:12px;font-family:var(--hd);font-size:26px;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;border:2px solid}
+.dcbtn small{font-family:var(--bd);font-size:12px;font-weight:600;margin-top:3px;color:var(--text)}
+.dcbtn:active{transform:scale(.97)}
+.dcbtn.HID,.cc-HID.on{--c:var(--hid)}.dcbtn.ND,.cc-ND.on{--c:var(--nd)}.dcbtn.E,.cc-E.on{--c:var(--err)}.dcbtn.YC,.cc-YC.on{--c:var(--yc)}.dcbtn.RC,.cc-RC.on{--c:var(--rc)}
+.dcbtn{color:var(--c);border-color:var(--c);background:color-mix(in srgb,var(--c) 14%,var(--panel2))}
+.chips button.cc-HID.on,.chips button.cc-ND.on,.chips button.cc-E.on{background:var(--c);color:var(--bg)}
+.chips button.cc-YC.on{background:var(--yc);color:#000}.chips button.cc-RC.on{background:var(--rc);color:#fff}
+.pill.code{margin-right:5px;font-size:13px;height:22px;padding:0 7px}
+.pill.code-HID{background:color-mix(in srgb,var(--hid) 24%,transparent);color:var(--hid)}
+.pill.code-ND{background:color-mix(in srgb,var(--nd) 24%,transparent);color:var(--nd)}
+.pill.code-E{background:color-mix(in srgb,var(--err) 24%,transparent);color:var(--err)}
+.pill.code-YC{background:var(--yc);color:#000;border-radius:3px}
+.pill.code-RC{background:var(--rc);color:#fff;border-radius:3px}
+.bins{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.bin{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);text-align:left;font-size:14px}
+.bin .cd{margin-left:auto;font-family:var(--hd);font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+.bin.YC{border-color:var(--yc)}.bin.RC{border-color:var(--rc)}.bin.ready{border-color:var(--pos)}.bin.ready .cd{color:var(--pos);font-size:16px}
+.awt{font-family:var(--hd);font-size:20px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.awt small{display:block;font-family:var(--bd);font-size:11px;color:var(--muted)}
+.awlist{list-style:none;margin:0;padding:0}
+.awlist li{display:grid;grid-template-columns:76px 1fr auto;gap:10px;align-items:center;padding:9px 2px;border-bottom:1px solid var(--line)}
+.awlist li:last-child{border-bottom:0}
+.kb{display:inline-block;font-family:var(--hd);font-size:13px;font-weight:700;padding:1px 6px;border-radius:5px;border:1.5px solid currentColor;margin-right:6px}
+.chips button.dpos{border-color:color-mix(in srgb,var(--pos) 55%,var(--line))}.chips button.dneg{border-color:color-mix(in srgb,var(--neg) 55%,var(--line))}
+.chips button.dpos.on{background:var(--pos);color:var(--bg)}.chips button.dneg.on{background:var(--neg);color:#fff}
+.mlist{list-style:none;margin:0;padding:0}
+.mlist li{display:grid;grid-template-columns:34px 1fr auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.mlist li:last-child{border-bottom:0}
+.mnum{width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--accentText);display:grid;place-items:center;font-family:var(--hd);font-weight:700;font-size:17px}
+.mlist .inl{min-height:38px;padding:6px 9px;font-size:14px}
+.mlist .url{font-size:12.5px;color:var(--muted);word-break:break-all;margin-top:3px}
+.mlist .url a{color:var(--home)}
+.mbtns{display:flex;gap:4px;flex-wrap:nowrap}
+.mbtns .btn{min-height:36px;padding:4px 9px;font-size:14px}
+.igrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
+.icard{background:var(--panel2);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+.icard .ph{position:relative;aspect-ratio:4/3;background:#000;cursor:zoom-in}
+.icard .ph img{width:100%;height:100%;object-fit:cover;display:block}
+.icard .ph .mnum{position:absolute;top:6px;left:6px}
+.icard textarea{min-height:56px;border:0;border-radius:0;font-size:14px;background:var(--panel2)}
+.icard .mbtns{padding:6px;justify-content:flex-end;border-top:1px solid var(--line)}
+.phbtn.key{border-color:var(--accent);box-shadow:inset 0 -3px 0 var(--accent)}
+.kind-fk{display:inline-block;font-size:11px;font-weight:800;padding:1px 6px;border-radius:5px;border:1.5px solid currentColor;margin-right:5px;vertical-align:1px}
+.phgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+@media (min-width:560px){.phgrid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.phbtn{background:var(--panel2);border:1px solid var(--line);border-radius:12px;min-height:66px;padding:6px;font-family:var(--hd);font-size:18px;letter-spacing:.02em;line-height:1.05;position:relative}
+@media (max-width:420px){.phbtn{font-size:15.5px;padding:4px}.scbtns button{font-size:15px}}
+.phbtn:active,.scbtns button:active,.penbtn:active{transform:scale(.97)}
+.phbtn .cnt{position:absolute;top:4px;right:6px;font-size:12px;color:var(--muted);font-family:var(--bd)}
+.evlist{list-style:none;margin:0;padding:0}
+.evlist li{display:grid;grid-template-columns:64px 34px 1fr auto;gap:8px;align-items:center;padding:9px 2px;border-bottom:1px solid var(--line)}
+.evlist li:last-child{border-bottom:0}
+.evlist .tm{font-family:var(--hd);font-size:18px;font-variant-numeric:tabular-nums}
+.evlist .ds{min-width:0}
+.evlist .ds b{font-weight:600}
+.evlist .ds .n{color:var(--muted);font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* stats table */
+.filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.chip{padding:7px 13px;border-radius:99px;background:var(--panel2);border:1px solid var(--line);font-size:14px;font-weight:600;min-height:36px}
+.chip.on{background:var(--accent);color:var(--accentText);border-color:transparent}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{text-align:left;font-family:var(--hd);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-size:14px;padding:8px 6px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel)}
+.tbl td{padding:7px 6px;border-bottom:1px solid var(--line);vertical-align:middle}
+.tbl td.tm{font-family:var(--hd);font-size:17px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.tbl input.inl{min-height:36px;padding:6px 8px;font-size:14px;background:transparent;border-color:transparent}
+.tbl input.inl:focus{background:var(--panel2);border-color:var(--accent)}
+.tblwrap{overflow-x:auto;max-height:65vh;overflow-y:auto;border-radius:10px}
+.tagbtn{cursor:pointer}
+/* rubric */
+.comp{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--panel2)}
+.comp+.comp{margin-top:10px}
+.comp h4{font-family:var(--hd);font-size:20px;margin:0 0 2px;letter-spacing:.02em}
+.comp ul{margin:6px 0 10px;padding-left:20px;color:var(--muted);font-size:14px}
+.comp ul li{margin:2px 0}
+.rate{display:flex;gap:6px;margin-bottom:8px}
+.rate button{flex:1;min-height:48px;border-radius:10px;background:var(--panel);border:1px solid var(--line);font-family:var(--hd);font-size:20px;line-height:1;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.rate button small{font-family:var(--bd);font-size:10.5px;color:var(--muted);margin-top:2px}
+.rate button.on{background:var(--accent);color:var(--accentText);border-color:transparent}
+.rate button.on small{color:var(--accentText)}
+.lvl{display:inline-block;padding:2px 9px;border-radius:99px;background:var(--panel3);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-right:6px}
+/* review */
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media (min-width:760px){.kpis{grid-template-columns:repeat(4,1fr)}}
+.kpi{background:var(--panel2);border-radius:12px;padding:12px;border:1px solid var(--line)}
+.kpi .l{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.kpi .v{font-family:var(--hd);font-size:34px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums}
+.bar{height:10px;border-radius:5px;background:var(--panel3);overflow:hidden;display:flex}
+.bar span{display:block;height:100%}
+.pitchwrap{background:var(--panel2);border-radius:12px;padding:8px;border:1px solid var(--line)}
+.pitchwrap svg{width:100%;height:auto;display:block;touch-action:manipulation}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);margin-top:6px;flex-wrap:wrap}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+/* sheet/modal */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:50;display:none;align-items:flex-end;justify-content:center}
+.scrim.on{display:flex}
+.sheet{background:var(--panel);width:100%;max-width:720px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom));border:1px solid var(--line);border-bottom:0}
+@media (min-width:760px){.scrim{align-items:center}.sheet{border-radius:18px;border-bottom:1px solid var(--line)}}
+.sheet .hd{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.sheet .hd h2{font-size:24px;flex:1}
+.stamp{font-family:var(--hd);font-size:20px;background:var(--panel2);padding:3px 10px;border-radius:8px;font-variant-numeric:tabular-nums}
+.tagsave{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.tagsave button{min-height:64px;border-radius:12px;font-family:var(--hd);font-size:20px;line-height:1.05;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px solid transparent}
+.tagsave button small{font-family:var(--bd);font-size:12px;opacity:.85}
+.tagsave .p{background:color-mix(in srgb,var(--pos) 20%,var(--panel2));color:var(--pos);border-color:var(--pos)}
+.tagsave .m{background:color-mix(in srgb,var(--neg) 20%,var(--panel2));color:var(--neg);border-color:var(--neg)}
+.tagsave .i{background:color-mix(in srgb,var(--info) 20%,var(--panel2));color:var(--info);border-color:var(--info)}
+.notebox{position:relative}
+.mic{position:absolute;right:8px;bottom:8px;width:40px;height:40px;border-radius:50%;background:var(--panel3);display:none;place-items:center}
+.mic.av{display:grid}
+.mic.live{background:var(--neg);color:#fff;animation:pulse 1.2s infinite}
+@keyframes pulse{50%{opacity:.6}}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{padding:8px 11px;border-radius:9px;background:var(--panel2);border:1px solid var(--line);font-size:14px;font-weight:600;min-height:40px}
+.chips button.on{background:var(--accent);color:var(--accentText);border-color:transparent}
+.toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%) translateY(20px);background:var(--text);color:var(--bg);padding:10px 14px;border-radius:12px;z-index:60;opacity:0;transition:.2s;display:flex;gap:12px;align-items:center;font-weight:600;max-width:92vw;pointer-events:none}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
+.toast button{color:var(--accent);font-weight:800;text-transform:uppercase;font-size:14px;filter:invert(1) hue-rotate(180deg)}
+.matchlist{list-style:none;padding:0;margin:0}
+.matchlist li{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line)}
+.matchlist li:last-child{border-bottom:0}
+.matchlist .cur{color:var(--accent);font-weight:700;font-size:12px;text-transform:uppercase}
+.vidrec{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:120px;border-radius:16px;background:var(--neg);color:#fff;font-family:var(--hd);font-size:26px;letter-spacing:.04em;cursor:pointer;text-align:center}
+.vidrec small{font-family:var(--bd);font-size:13px;opacity:.9}
+.vidrec input{display:none}
+video.player{width:100%;max-height:50vh;border-radius:12px;background:#000;margin-top:10px;display:none}
+.empty{color:var(--muted);text-align:center;padding:22px 8px}
+.notice{font-size:13px;color:var(--muted);background:var(--panel2);border-radius:10px;padding:9px 11px;border:1px dashed var(--line)}
+.sectionhead{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.sectionhead h2{flex:1;margin:0}
+/* ===== responsive: safe everywhere ===== */
+img,video,iframe,embed,object{max-width:100%;height:auto}
+svg{max-width:100%}
+.grid2>*,.live>*,.fgrid>*,.card{min-width:0}
+.seg button,.rate button{min-width:0;overflow-wrap:anywhere}
+.navmore{display:none}
+.navmenu{position:fixed;right:8px;bottom:calc(66px + env(safe-area-inset-bottom));z-index:45;width:min(280px,calc(100vw - 16px));background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.45);padding:6px}
+.navmenu[hidden]{display:none}
+.navmenu a{display:flex;align-items:center;gap:12px;min-height:52px;padding:0 14px;border-radius:10px;color:var(--text);text-decoration:none;font-family:var(--hd);font-size:20px;letter-spacing:.03em}
+.navmenu a svg{width:22px;height:22px;flex:none}
+.navmenu a.on{background:var(--accent);color:var(--accentText)}
+/* ===== phones & small tablets ===== */
+@media (max-width:760px){
+  .iconbtn{width:44px;height:44px}
+  .btn.sm,.chip,.chips button,.adj .btn,.mbtns .btn{min-height:44px}
+  .btn.sm,.chip{min-width:44px}
+  .adj .btn{min-width:56px}
+  .mic{width:44px;height:44px}
+  .seg button{min-width:44px}
+  .tbl{font-size:16px}
+  .tbl input.inl,.mlist .inl{min-height:44px;font-size:16px}
+  .tagbtn{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px}
+  .chips button,.chip{font-size:16px}
+  .evlist .n,.notice,.comp ul,.icard textarea{font-size:16px}
+  p.muted.small,.ds .small,.ds .n,td div.muted.small,td span.muted.small,.comp>.muted.small,.sectionhead .muted.small,.mlist .url,.clocksub,.bin,#rubSub{font-size:16px}
+  .btn.sm,.phbtn,.scbtns button,.btn{font-size:16px}
+  .phbtn{hyphens:auto;overflow-wrap:anywhere}
+  .evlist .ds .n,.matchlist .muted.small,.vidrec small,.adj .btn{font-size:16px}
+  .sheet{padding-left:14px;padding-right:14px}
+  #penBreak,#phaseBreak,#compBreak,#dcList{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .rate{gap:4px}
+  .rate button small{font-size:10.5px;line-height:1.1}
+}
+@media (max-width:480px){
+  .dcrow{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .dcrow .dcbtn small{font-size:12px}
+  .tbl th,.tbl td{padding-left:4px;padding-right:4px}
+  .scbtns{grid-template-columns:1fr}
+  .brand h1{font-size:18px}
+  .miniclock{font-size:20px;padding:2px 8px}
+  .top .in{gap:8px}
+}
+/* collapse the bottom navigation into Live · Log · Review + Menu on small phones */
+@media (max-width:560px){
+  #nav a[data-v="setup"],#nav a[data-v="video"],#nav a[data-v="rubric"]{display:none}
+  .navmore{display:flex;flex:1;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:58px;padding:8px 2px 9px;color:var(--muted);font-family:var(--hd);font-size:14px;letter-spacing:.04em;text-transform:uppercase}
+  .navmore svg{width:22px;height:22px}
+  .tbl .barcell{display:none}
+  .tbl th{letter-spacing:.02em;font-size:13px;overflow-wrap:anywhere}
+  .tbl td{overflow-wrap:anywhere}
+  .tbl.stack,.tbl.stack tbody{display:block;width:100%}
+  .tbl.stack thead{display:none}
+  .tbl.stack tr{display:grid;grid-template-columns:62px minmax(0,1fr) auto;column-gap:10px;row-gap:4px;padding:10px 0;border-bottom:1px solid var(--line)}
+  .tbl.stack td{border:0;padding:0;display:block;min-width:0}
+  .tbl.stack td:first-child{grid-column:1;grid-row:1/span 6}
+  .tbl.stack td:last-child{grid-column:3;grid-row:1/span 6;display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+  .tbl.stack td:not(:first-child):not(:last-child){grid-column:2}
+  .tbl.stack td[colspan]{grid-column:1/-1!important;grid-row:auto!important}
+  #logBody td:nth-child(3){display:none}
+  .tbl.stack td.tm{font-size:18px}
+  .tblwrap{max-height:none;overflow-x:visible}
+  .navmore.on{color:var(--accent);box-shadow:inset 0 3px 0 var(--accent)}
+}
+</style>
+</head>
+<body>
+<header class="top"><div class="in">
+  <div class="logo" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><ellipse cx="12" cy="12" rx="10" ry="6.2" transform="rotate(-35 12 12)"/><path d="M8.5 15.5l7-7M10 12.6l1.4 1.4M12.6 10l1.4 1.4"/></svg></div>
+  <div class="brand"><h1>Referee Coach</h1><div class="m" id="topMatch">No match</div></div>
+  <span class="savedot" id="saveDot" title="Saved on this device"></span>
+  <div class="miniclock" id="miniClock">00:00</div>
+  <button class="iconbtn" id="themeBtn" title="Toggle dark / sunlight mode" aria-label="Toggle dark or sunlight mode"></button>
+</div></header>
+
+<main class="wrap">
+<!-- SETUP -->
+<section class="view" id="v-setup">
+  <div class="card">
+    <div class="sectionhead"><h2>Match Setup</h2><button class="btn sm" id="newMatchBtn">+ New match</button></div>
+    <div class="fgrid">
+      <div><label class="f" for="s-referee">Referee</label><input type="text" id="s-referee" data-k="referee" placeholder="Referee name"></div>
+      <div><label class="f" for="s-coach">Coach</label><input type="text" id="s-coach" data-k="coach" placeholder="Coach name"></div>
+      <div><label class="f" for="s-date">Date</label><input type="date" id="s-date" data-k="date"></div>
+      <div><label class="f" for="s-competition">Competition</label><input type="text" id="s-competition" data-k="competition" placeholder="e.g. UAE Premiership"></div>
+      <div><label class="f" for="s-home">Home team</label><input type="text" id="s-home" data-k="home"></div>
+      <div><label class="f" for="s-away">Away team</label><input type="text" id="s-away" data-k="away"></div>
+      <div><label class="f" for="s-venue">Venue</label><input type="text" id="s-venue" data-k="venue" placeholder="Optional"></div>
+      <div><label class="f" for="s-half">Half length (mins)</label><input type="number" id="s-half" data-k="halfLength" min="1" max="60" inputmode="numeric"></div>
+      <div><label class="f" for="s-bin">Sin-bin (mins)</label><input type="number" id="s-bin" data-k="sinBin" min="1" max="20" inputmode="numeric"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="grid2">
+      <div><label class="f">Format</label><div class="seg" data-seg="format"><button data-v="15s">15s</button><button data-v="7s">7s</button></div></div>
+      <div><label class="f">Role being assessed</label><div class="seg" data-seg="role"><button data-v="Referee">Referee</button><button data-v="AR">Assistant Ref</button></div></div>
+      <div><label class="f">Accreditation level</label><div class="seg" data-seg="level"><button data-v="1">L1 Foundation</button><button data-v="2">L2 Developing</button><button data-v="3">L3 Advancing</button></div></div>
+      <div><label class="f">Rating scale</label><div class="seg" data-seg="scale"><button data-v="5">1 – 5</button><button data-v="3">Needs Work / Competent / Strength</button></div></div>
+      <div><label class="f">Home team defends (1st half)</label><div class="seg" data-seg="homeLeft"><button data-v="1">Left end</button><button data-v="0">Right end</button></div></div>
+    </div>
+    <p class="notice" id="rubricNote" style="margin:12px 0 0"></p>
+  </div>
+  <div class="card">
+    <div class="sectionhead"><h2>Saved matches</h2><button class="btn sm" id="sampleBtn">Load sample match</button></div>
+    <ul class="matchlist" id="matchList"></ul>
+  </div>
+</section>
+
+<!-- LIVE -->
+<section class="view" id="v-live">
+  <div class="live">
+    <div class="card clockcard">
+      <span class="halfbadge" id="halfBadge">1st Half</span>
+      <div class="clock" id="clock">00:00</div>
+      <div class="clocksub">Stoppage <b id="injTime">0:00</b> · <span id="halfLenTxt">40' halves</span></div>
+      <div class="cbtns">
+        <button class="btn pri big" id="startBtn">START</button>
+        <button class="btn inj" id="injBtn">INJURY</button>
+        <button class="btn" id="halfBtn">HALF-TIME</button>
+        <button class="btn" id="noteBtn">+ NOTE</button>
+        <button class="btn danger" id="resetBtn">RESET</button>
+      </div>
+      <div class="adj"><button class="btn" data-adj="-60">−1m</button><button class="btn" data-adj="-10">−10s</button><button class="btn" data-adj="10">+10s</button><button class="btn" data-adj="60">+1m</button></div>
+      <div class="bins" id="binList"></div>
+      <div class="board">
+        <div><div class="tn c-home" id="bHome">Home</div><div class="sc" id="sHome">0</div></div>
+        <div class="dash">–</div>
+        <div><div class="tn c-away" id="bAway">Away</div><div class="sc" id="sAway">0</div></div>
+      </div>
+      <div class="scbtns" id="scoreBtns"></div>
+    </div>
+    <div class="card">
+      <div class="penrow">
+        <button class="penbtn home" id="penHome">+ PENALTY <span id="penHomeName">HOME</span><small>conceded · <span id="penHomeCnt">0</span></small></button>
+        <button class="penbtn away" id="penAway">+ PENALTY <span id="penAwayName">AWAY</span><small>conceded · <span id="penAwayCnt">0</span></small></button>
+        <button class="penbtn fk home" id="fkHome">+ FREE KICK <span id="fkHomeName">HOME</span><small>conceded · <span id="fkHomeCnt">0</span></small></button>
+        <button class="penbtn fk away" id="fkAway">+ FREE KICK <span id="fkAwayName">AWAY</span><small>conceded · <span id="fkAwayCnt">0</span></small></button>
+      </div>
+      <h3>Decision notes</h3>
+      <div class="dcrow" id="dcRow"></div>
+      <h3>Quick log · phases of play</h3>
+      <div class="phgrid" id="phaseGrid"></div>
+    </div>
+    <div class="card recent">
+      <div class="sectionhead"><h2>Penalties, free kicks &amp; cards</h2><span class="muted small">Game time when awarded</span></div>
+      <ul class="awlist" id="awList"></ul>
+    </div>
+    <div class="card recent">
+      <div class="sectionhead"><h2>Recent</h2><a class="btn sm" href="#stats">Full log</a></div>
+      <ul class="evlist" id="recentList"></ul>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<section class="view" id="v-stats">
+  <div class="card">
+    <div class="sectionhead"><h2>Stats Mode · Match Log</h2><span class="muted small" id="logCount"></span></div>
+    <div class="filters" id="logFilters"></div>
+    <div class="tblwrap"><table class="tbl stack"><thead><tr><th>Time</th><th>Award / card</th><th>Type</th><th>Detail</th><th>Tag</th><th style="min-width:180px">Note</th><th></th></tr></thead><tbody id="logBody"></tbody></table></div>
+    <p class="muted small" style="margin:8px 0 0">Tap a tag to cycle + / − / i. Edit notes inline. ✎ edits time, team and details.</p>
+  </div>
+</section>
+
+<!-- VIDEO -->
+<section class="view" id="v-video">
+  <div class="grid2">
+    <div class="card">
+      <h2>Video Mode</h2>
+      <div class="fgrid" style="grid-template-columns:1fr 1fr">
+        <div><label class="f" for="vPhase">Phase tag</label><select id="vPhase"></select></div>
+        <div><label class="f">Tag</label><div class="seg" data-vtag><button data-v="+">+</button><button data-v="-">−</button><button data-v="i">i</button></div></div>
+        <div class="full"><label class="f" for="vNote">Note</label><input type="text" id="vNote" placeholder="Optional quick note"></div>
+      </div>
+      <label class="vidrec" style="margin-top:12px" id="vidRecLbl">● RECORD CLIP<small>Opens the camera (or pick a clip). Time-stamped at tap: <span id="vidStampPrev">00:00</span></small><input type="file" accept="video/*" capture="environment" id="vidInput"></label>
+      <p class="notice" style="margin:10px 0 0">Clips stay on this device (browser storage) and are linked to the match timeline. Excel/PDF exports list the clip references, not the video itself.</p>
+    </div>
+    <div class="card">
+      <h2>Clips</h2>
+      <ul class="evlist" id="clipList"></ul>
+      <video class="player" id="player" controls playsinline></video>
+    </div>
+  </div>
+</section>
+
+<!-- RUBRIC -->
+<section class="view" id="v-rubric">
+  <div class="card">
+    <div class="sectionhead"><h2 id="rubTitle">Competency Assessment</h2><span class="kpi" style="padding:6px 12px"><span class="l">Average</span> <span class="v" style="font-size:24px" id="rubAvg">–</span></span></div>
+    <p class="muted small" id="rubSub" style="margin:0 0 12px"></p>
+    <div id="rubList"></div>
+  </div>
+</section>
+
+<!-- REVIEW -->
+<section class="view" id="v-review">
+  <div class="card">
+    <div class="sectionhead"><h2>Post-Match Review</h2></div>
+    <div class="kpis" id="kpis"></div>
+  </div>
+  <div class="grid2" style="margin-top:12px">
+    <div class="card">
+      <h2>Penalty &amp; free kick map</h2>
+      <div class="pitchwrap" id="heatPitch"></div>
+      <div class="legend"><span><i style="background:var(--home)"></i><span id="lgHome">Home</span> conceded</span><span><i style="background:var(--away)"></i><span id="lgAway">Away</span> conceded</span><span>● penalty&nbsp; ■ free kick</span><span>Shading = infringement density by zone</span></div>
+    </div>
+    <div class="card">
+      <h2>Penalty &amp; free kick breakdown</h2>
+      <div id="penBreak"></div>
+    </div>
+  </div>
+  <div class="grid2" style="margin-top:12px">
+    <div class="card"><h2>Phase tags</h2><div id="phaseBreak"></div></div>
+    <div class="card"><h2>Competency ratings</h2><div id="compBreak"></div></div>
+  </div>
+  <div class="card" style="margin-top:12px">
+    <div class="sectionhead"><h2>Decision notes · HID / ND / E / YC / RC</h2><span class="muted small">HID = High Impact Decision · ND = No Decision · E = Error · YC = Yellow Card · RC = Red Card</span></div>
+    <div class="kpis" id="dcKpis"></div>
+    <div id="dcList" style="margin-top:12px"></div>
+  </div>
+  <div class="card" style="margin-top:12px">
+    <h2>Overall summary</h2>
+    <div class="grid2">
+      <div><label class="f" for="sumS">Strengths</label><textarea id="sumS" data-sum="strengths" rows="4"></textarea></div>
+      <div><label class="f" for="sumD">Key areas to develop</label><textarea id="sumD" data-sum="develop" rows="4"></textarea></div>
+      <div style="grid-column:1/-1"><label class="f" for="sumA">Action plan</label><textarea id="sumA" data-sum="action" rows="4"></textarea></div>
+    </div>
+  </div>
+  <div style="margin-top:12px">
+    <div class="card">
+      <div class="sectionhead"><h2>Video clip links</h2><span class="muted small" id="lnkCount"></span></div>
+      <div class="fgrid" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr))">
+        <div><label class="f" for="lnkUrl">Clip URL</label><input type="text" id="lnkUrl" inputmode="url" placeholder="https://… (YouTube, Vimeo, Hudl, Google Drive, OneDrive…)"></div>
+        <div><label class="f" for="lnkDesc">Brief description</label><input type="text" id="lnkDesc" placeholder="e.g. 34:10 high tackle – YC process"></div>
+      </div>
+      <div class="row" style="margin:10px 0 6px"><button class="btn pri" id="lnkAdd">+ Add link</button></div>
+      <ul class="mlist" id="lnkList"></ul>
+    </div>
+    <div class="card">
+      <div class="sectionhead"><h2>Images</h2><span class="muted small" id="imgCount"></span><label class="btn pri sm" style="cursor:pointer">+ Add images<input type="file" accept="image/*" multiple id="imgInput" hidden></label></div>
+      <p class="muted small" style="margin:0 0 10px">Pick one or several photos or screenshots, then add a brief description under each. Images are stored on this device and included in the PDF report.</p>
+      <div class="igrid" id="imgGrid"></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Export</h2>
+    <div class="row">
+      <button class="btn pri" id="xlsxBtn">⬇ Excel (.xlsx)</button>
+      <button class="btn pri" id="pdfBtn">⬇ PDF report</button>
+      <button class="btn" id="copyBtn">Copy summary text</button>
+      <button class="btn" id="backupBtn">Backup (.json)</button>
+      <label class="btn" style="cursor:pointer">Restore backup<input type="file" accept=".json,application/json" id="restoreInput" hidden></label>
+    </div>
+    <p class="muted small" id="libNote" style="margin:10px 0 0"></p>
+  </div>
+</section>
+</main>
+
+<nav class="tabs"><div class="in" id="nav"></div></nav>
+<div class="scrim" id="scrim"><div class="sheet" id="sheet" role="dialog" aria-modal="true"></div></div>
+<div class="toast" id="toast"><span id="toastMsg"></span><button id="toastAct"></button></div>
+
+<script>
+'use strict';
+/* ============ helpers ============ */
+const $=(s,el=document)=>el.querySelector(s), $$=(s,el=document)=>[...el.querySelectorAll(s)];
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad=n=>String(n).padStart(2,'0');
+function fmt(ms){ms=Math.max(0,Math.floor(ms/1000));return pad(Math.floor(ms/60))+':'+pad(ms%60);}
+function fmtShort(ms){ms=Math.max(0,Math.floor(ms/1000));return Math.floor(ms/60)+':'+pad(ms%60);}
+function parseTime(s){const m=String(s).trim().match(/^(\d{1,3})(?::(\d{1,2}))?(?:\s*\+\s*(\d{1,2})(?::(\d{1,2}))?)?$/);if(!m)return null;let ms=((+m[1])*60+(+(m[2]||0)))*1000;if(m[3])ms+=((+m[3])*60+(+(m[4]||0)))*1000;return ms;}
+
+/* ============ storage ============ */
+const LS_KEY='rrc_data_v1', PREF_KEY='rrc_prefs_v1';
+let store={matches:{},currentId:null}, prefs={theme:'dark'}, storageOK=true;
+try{const s=localStorage.getItem(LS_KEY);if(s)store=JSON.parse(s);}catch(e){storageOK=false}
+try{const p=localStorage.getItem(PREF_KEY);if(p)prefs=Object.assign(prefs,JSON.parse(p));}catch(e){}
+let saveTimer;
+function save(now){clearTimeout(saveTimer);const f=()=>{try{localStorage.setItem(LS_KEY,JSON.stringify(store));storageOK=true}catch(e){storageOK=false}updSaveDot()};now?f():saveTimer=setTimeout(f,250);}
+function savePrefs(){try{localStorage.setItem(PREF_KEY,JSON.stringify(prefs))}catch(e){}}
+function updSaveDot(){const d=$('#saveDot');d.classList.toggle('bad',!storageOK);d.title=storageOK?'Saved on this device':'Not saving: browser storage unavailable here';}
+
+/* ============ match model ============ */
+function blankMatch(){return{id:uid(),created:Date.now(),
+  setup:{referee:'',coach:'',date:new Date().toISOString().slice(0,10),competition:'',home:'Home',away:'Away',venue:'',format:'15s',role:'Referee',level:'1',halfLength:40,scale:'5',homeLeft:'1'},
+  clock:{running:false,startedAt:0,elapsed:0,half:1,inj:0,injRunning:false,injStartedAt:0,ended:false},
+  events:[],ratings:{},summary:{strengths:'',develop:'',action:''}};}
+function newMatch(){const m=blankMatch();store.matches[m.id]=m;store.currentId=m.id;save(true);return m;}
+function M(){return store.matches[store.currentId]||newMatch();}
+try{Object.values(store.matches||{}).forEach(m=>(m.events||[]).forEach(e=>{if(e.type==='penalty'&&e.sanction==='Free Kick'){e.type='freekick';e.sanction='Free Kick';}const cc=({'Yellow Card':'YC','Red Card':'RC'})[e.sanction];if(e.type==='penalty'&&cc&&!(e.codes||[]).includes(cc)){e.codes=(e.codes||[]).concat(cc);}}));}catch(err){console.warn('Data upgrade skipped',err);}
+const HL=m=>Math.max(1,+m.setup.halfLength||40)*60000;
+
+/* ============ clock ============ */
+function elapsed(m=M()){const c=m.clock;return c.elapsed+(c.running?Date.now()-c.startedAt:0);}
+function injMs(m=M()){const c=m.clock;return c.inj+(c.injRunning?Date.now()-c.injStartedAt:0);}
+function timeLabel(ms,half,m=M()){const base=HL(m)*(half===2?2:1);return ms>base?fmt(base)+'+'+fmtShort(ms-base):fmt(ms);}
+function stamp(){const m=M();return{t:elapsed(m),half:m.clock.half};}
+function clockStart(){const c=M().clock;if(c.injRunning){c.inj+=Date.now()-c.injStartedAt;c.injRunning=false;}if(!c.running){c.running=true;c.startedAt=Date.now();c.ended=false;}save(true);wake(true);renderClock();}
+function clockPause(){const c=M().clock;if(c.running){c.elapsed+=Date.now()-c.startedAt;c.running=false;}save(true);renderClock();}
+function toggleInjury(){const c=M().clock;if(c.injRunning){c.inj+=Date.now()-c.injStartedAt;c.injRunning=false;clockStart();}else{clockPause();c.injRunning=true;c.injStartedAt=Date.now();save(true);}renderClock();}
+function halfTime(){const m=M(),c=m.clock;const st=stamp();clockPause();if(c.injRunning){c.inj+=Date.now()-c.injStartedAt;c.injRunning=false;}
+  if(c.half===1){c.h1End=c.elapsed;addEvent({type:'note',category:'Half-time',tag:'i',note:'Half-time: '+scoreTxt(m)},st,true);c.half=2;c.elapsed=HL(m);}
+  else{addEvent({type:'note',category:'Full-time',tag:'i',note:'Full-time: '+scoreTxt(m)},st,true);c.ended=true;}
+  save(true);renderAll();}
+function adjustClock(sec){const c=M().clock;c.elapsed=Math.max(0,c.elapsed+sec*1000);save(true);renderClock();}
+let wakeLock=null;async function wake(on){try{if(on&&!wakeLock&&navigator.wakeLock){wakeLock=await navigator.wakeLock.request('screen');wakeLock.addEventListener('release',()=>wakeLock=null);}}catch(e){}}
+
+/* ============ rubric data ============ */
+const SCALE={'5':[[1,'Not yet'],[2,'Developing'],[3,'Competent'],[4,'Strong'],[5,'Exceptional']],'3':[[1,'Needs Work'],[2,'Competent'],[3,'Strength']]};
+const LEVELS={'1':'Level 1 · Foundation','2':'Level 2 · Developing','3':'Level 3 · Advancing'};
+function P(id,name,desc,l1,l2,l3){return{id,name,desc,ind:{1:l1,2:l2,3:l3}};}
+function rubric(s){
+  const f=s.format,ar=s.role==='AR',s7=f==='7s';
+  if(!ar){
+    return[
+      P('safety','Safety & Law Application','Player welfare first; accurate, consistent Law application.',
+        ['Prioritises player safety: acts on dangerous tackles, collapsed set pieces and players off their feet','Applies core Laws accurately (knock-on, forward pass, offside, tackle)','Recognises foul play and stops the game when safety requires it','Uses the correct sanction for common offences (penalty, free kick, scrum)'],
+        ['Applies Law with materiality: penalises what affects the contest or safety, lets the trivial go','Accurate foul-play process: head-contact framework, mitigation, correct sanction (YC/RC)','Consistent thresholds for both teams across both halves','Uses advantage correctly, including tactical vs territorial advantage'],
+        ['Accurate Law application at speed and under pressure','Identifies cynical and repeat offending; uses team warnings and escalation','Manages complex foul-play incidents calmly with AR/TMO input','Law application produces a safe, fair, free-flowing contest']),
+      s7?P('breakdown','Breakdown Speed','7s tempo: ball must be available quickly at every tackle.',
+        ['Fast, clear calls at every tackle: ball must be available immediately','Tackler release and roll-away enforced straight away','Ball carrier places or releases promptly; no holding on','Clear "use it" calls'],
+        ['Zero tolerance on slowing the ball given 7s tempo','Polices offside at the tackle in wide channels','Preventative calls without losing tempo','Materiality on the jackal contest; rewards the first legal player'],
+        ['Anticipates turnover threats and positions for the next phase','Manages tactical cynicism near the try line (YC thresholds)','Breakdown management sustains tempo all match','Sets breakdown expectations with captains early'])
+       :P('breakdown','Tackle / Ruck','Clear picture at the tackle and ruck; quick, fair contest for the ball.',
+        ['Identifies tackler, tackled player and arriving players','Ensures tackler releases and rolls away; ball carrier places/releases','Polices players on their feet and entry through the gate','Calls "ruck" and "use it" clearly'],
+        ['Preventative calls ("roll away", "hands off", "release") before penalising','Rewards the first legal jackler; materiality on sealing off and side entry','Manages ruck offside lines and the hindmost foot','Consistent tackle picture for both teams'],
+        ['Reads tackle contests early and arrives at the best viewing angle','Identifies and stops repeat or tactical slowing of the ball','Adapts breakdown management to game state and team tactics','Breakdown picture lets the attacking team play quick ball']),
+      s7?P('setpiece','Restarts & Set Piece','Restarts, aerial contests and quick, simple set piece.',
+        ['Kick-off: 10m, correct restart sanctions, players onside','Kicker\'s team behind the ball at restarts','Simple scrum management (crouch, bind, set)','Lineout basics: straight throw, gap, mark'],
+        ['Polices the restart chase and aerial contest for safety','Manages restart offside and timing quickly to keep tempo','Scrum and lineout managed with minimal resets','Consistent decisions on aerial challenges'],
+        ['Anticipates restart tactics and positions to see the contest','Rapid restarts after scores with clock awareness','Safety-first approach to contested restarts under pressure','Restart management supports game tempo throughout'])
+       :P('setpiece','Set Piece (Scrum & Lineout)','Stable, safe, fair set piece contests.',
+        ['Correct scrum engagement sequence ("crouch, bind, set") and timing','Ensures a straight feed and a stable, square scrum','Lineout: correct mark, 1m gap, straight throw, receivers and non-participants','Correct sanctions at scrum and lineout'],
+        ['Identifies the dominant scrum and the cause of collapse; rewards the dominant side','Preventative management of binding and angles before engagement','Lineout: polices lifting, closing the gap and maul formation','Manages maul Law (formation, joining, obstruction, use it)'],
+        ['Reads front-row battles and technical offences accurately under pressure','Uses resets and free kicks judiciously; set piece is a contest, not a lottery','Anticipates set-piece tactics (driving mauls, 5m lineouts) and positions accordingly','Manages set piece with minimal time lost']),
+      P('positioning','Positioning & Work Rate','Right place, right time, right angle.',
+        ['Close enough to the ball to see and be seen','Avoids interfering with play or passing lines','Keeps up with play throughout; fitness suited to the level'].concat(s7?['Wide-to-wide coverage; tracks line breaks to the try line']:['Good angles at the tackle and set piece']),
+        ['Anticipates the next phase and moves early','Adjusts position to see likely infringements (offside line, jackal)','Efficient running lines; recovers well after breaks and kicks','Maintains work rate in the final quarter'],
+        ['Reads team shape and tactics to anticipate play several phases ahead','Positions for the critical decision (try line, breakdown turnovers)','Arrives in time for key decisions after line breaks','Uses presence and position as a deterrent']),
+      P('communication','Communication & Signals','Clear whistle, signals and voice.',
+        ['Clear, correct primary and secondary signals','Whistle tone matched to the decision','Short, calm verbal calls players can hear','Respectful communication with captains'],
+        ['Explains key decisions concisely to captains and players','Preventative talk that changes player behaviour','Signals sell the decision to players, spectators and broadcast','Confident, composed body language'],
+        ['Communication adapts to players, game state and pressure moments','Concise, clear communication with ARs/TMO during reviews','Uses communication to manage tempo and temperature','Credibility with players: decisions accepted']),
+      P('management','Game Management & Empathy','Understanding the game and the people playing it.',
+        ['Applies Law with common sense for the level of the game','Remains calm and in control; manages stoppages and restarts','Treats players fairly and respectfully','Basic awareness of match clock and time management'],
+        ['Recognises flashpoints and intervenes early (preventative management)','Empathy for the game: understands what teams are trying to do','Manages captains and repeated infringements (warnings, escalation)','Effective management of injuries, replacements and time'],
+        ['Reads the tactical intent of both teams and manages accordingly','Manages pressure moments (scoreline, crowd, end of game) with composure','Consistent decisions under fatigue and pressure','Game understanding produces a match that flows and is fair to both teams']),
+      P('to3','Team of Three (To3) Teamwork','Working with assistant referees as one team.',
+        ['Conducts a pre-match briefing with ARs (protocols, signals)','Acknowledges AR flags and signals','Uses ARs for touch and kicks at goal','Knows the communication protocol'],
+        ['Uses AR information effectively for offside lines and foul play','Clear, concise comms with ARs during play','Shared responsibility for in-goal decisions','Leads a post-match review with the team'],
+        ['To3 operates as one unit; ARs actively support game management','Uses ARs to manage off-ball incidents and pressure moments','Efficient use of AR/TMO process with clear outcomes','Leads a high-performing team culture'])
+    ];
+  }
+  return[
+    P('safety','Safety & Foul Play Detection','Identifying and reporting foul play accurately.',
+      ['Flags foul play clearly and correctly','Knows AR duties and limits of the role','Watches off-ball areas the referee cannot see'],
+      ['Applies the head-contact framework and recommends a correct sanction','Materiality: reports what matters, not every incident','Concise, factual description of incidents to the referee'],
+      ['Detects off-ball and cynical foul play under pressure','Recommendations are accurate and confidently delivered','Supports the referee in high-pressure foul-play reviews']),
+    s7?P('breakdown','Breakdown Speed Support','Supporting the referee on the wide breakdown and offside.',
+      ['Monitors offside at wide tackles on own touchline side','Communicates obvious slowing of the ball','Keeps the defensive line in view'],
+      ['Preventative comms to help keep tempo','Identifies cynical play near the try line','Supports the referee\'s picture at the tackle'],
+      ['Anticipates wide turnovers and positions accordingly','Information is timely and influences outcomes','Seamless support to the referee\'s tempo management'])
+     :P('breakdown','Tackle / Ruck Support','Offside lines and blind-side breakdown information.',
+      ['Monitors the offside line at rucks on own side','Signals obvious offside players','Watches the blind side of rucks'],
+      ['Preventative comms to manage the defensive line','Identifies the hindmost foot accurately','Information is concise and material'],
+      ['Reads defensive tactics and anticipates offside','Comms timed to allow preventative management','Influences the breakdown picture with accurate support']),
+    s7?P('setpiece','Restarts & Kick-off Support','Kick-offs, 10m and restart offside.',
+      ['Judges the 10m line on kick-offs accurately','Signals ball directly into touch from kick-off','Correct position for restarts'],
+      ['Monitors chaser offside at restarts','Safety in aerial contests flagged where needed','Quick, accurate signals to keep tempo'],
+      ['Anticipates restart tactics and positions early','Accurate under pressure at the end of halves','Seamless restart management with the referee'])
+     :P('setpiece','Set Piece & Lineout Support','Lineout and scrum offside lines.',
+      ['Correct mark for the lineout and straight throw','Monitors the 10m lineout offside line','Monitors backline offside at scrums on own side'],
+      ['Identifies lineout infringements (gap, obstruction, lifting)','Polices maul formation from lineouts','Communicates offside lines preventatively'],
+      ['Anticipates set-piece tactics and positions accordingly','Information on scrum and lineout is accurate under pressure','Supports referee in driving-maul decisions']),
+    P('touch','Touch, Touch-in-Goal & Kicks at Goal','Core AR judgements.',
+      ['Accurate touch and touch-in-goal decisions','Correct flag signals and positioning for kicks at goal','Marks the correct place of throw-in'],
+      ['Judges tight touch decisions (foot on line, ball in/out) consistently','Anticipates kicks to touch and positions early','Clear communication with partner AR at kicks at goal'],
+      ['Elite accuracy in tight in-goal and touch decisions','Supports try/no-try decisions with the referee','Consistently accurate under pressure']),
+    P('positioning','Positioning & Work Rate (AR)','Being in line with the play.',
+      ['Stays in line with the ball or offside line as required','Moves promptly to the correct position for kicks and lineouts','Keeps up with line breaks to the try line'],
+      ['Anticipates play and moves early','Efficient movement along the touchline','Maintains work rate in the final quarter'],
+      ['Positions for the critical decision every time','Elite work rate and recovery','Positioning supports the referee\'s game management']),
+    P('communication','Communication & Signals (Flags & Comms)','Flags, comms and body language.',
+      ['Clear, correct flag signals','Uses agreed comms protocol','Calm, short communication'],
+      ['Concise, factual and timely comms','Uses comms to support preventative management','Confident body language'],
+      ['Comms are prioritised and timed for impact','Clear in high-pressure moments and reviews','Credible with players and team officials on the touchline']),
+    P('management','Game Management & Empathy (AR)','Supporting the game and managing the touchline.',
+      ['Manages the technical zone and replacements on own side','Calm and in control on the touchline','Respectful to players and officials'],
+      ['Understands game context and the referee\'s priorities','Recognises flashpoints and alerts the referee early','Manages substitutions and blood/HIA process'],
+      ['Reads tactical intent and informs the referee','Composed under pressure from benches and crowd','Adds value to game management at key moments']),
+    P('to3','To3: Teamwork & Support to Referee','Acting as one team with the referee.',
+      ['Follows the pre-match brief','Supports the referee\'s decisions visibly','Focuses on agreed areas of responsibility'],
+      ['Proactively supports the referee in areas of difficulty','Consistent with the referee\'s thresholds','Shares responsibility for in-goal and foul-play decisions'],
+      ['Anticipates the referee\'s needs','Actively contributes to game management','Elevates the team performance']),
+    P('to3comms','To3: Communication Protocol','Comms discipline in the Team of Three.',
+      ['Uses the agreed comms language','Keeps the comms channel clear','Responds promptly to the referee'],
+      ['Information is prioritised: safety, then material offences','Concise, factual delivery','Coordinates with partner AR'],
+      ['Comms discipline under high pressure','Timing of information is optimal','Comms model for others to follow']),
+    P('to3prep','To3: Preparation & Review','Pre-match preparation and post-match review.',
+      ['Attends the pre-match briefing prepared','Knows team colours, kickers and match protocols','Participates in the post-match debrief'],
+      ['Prepares on team tactics and likely flashpoints','Contributes specific clips/notes to the review','Acts on previous feedback'],
+      ['Leads aspects of preparation and review','Self-analysis is accurate and honest','Mentors developing officials'])
+  ];
+}
+
+/* ============ phases & infringements ============ */
+function phaseList(m=M()){const s=m.setup,s7=s.format==='7s';
+  if(s.role==='AR')return['Touch / In-goal','Kick at Goal',s7?'Kick-off 10m':'Lineout Offside','Foul Play Report','To3 Comms','Positioning','Ruck','Maul','Offside','Advantage','Restart','Scrum','General Play'];
+  return s7?['Tackle','Ruck','Maul','Breakdown Speed','Scrum','Lineout','Restart / Kick-off','Offside','Foul Play','Advantage','General Play','Positioning','Communication','Game Mgmt']
+           :['Tackle','Ruck','Maul','Scrum','Lineout','Offside','Foul Play','Advantage','Restart','General Play','Positioning','Communication','Game Mgmt'];}
+const KEY_PHASES=['Ruck','Maul'];
+const SETPIECE={'Scrum':'Put-in by','Lineout':'Throw-in by','Lineout Offside':'Throw-in by'};
+const spWord=c=>c==='Scrum'?'put-in':'throw-in';
+const SP_OUT=['Play on','Reset','Free kick','Penalty'];
+const spCat=c=>c==='Scrum'?'Scrum':(c==='Lineout'||c==='Lineout Offside')?'Lineout':null;
+function outTxt(e){if(!e.outcome)return'';return(e.outcome==='Free kick'||e.outcome==='Penalty')&&e.against?e.outcome+' v '+teamName(e.against):e.outcome;}
+function spBlock(id){const m=M();return`<div id="${id}"><label class="f">Referee decision</label><div class="chips" data-o>${SP_OUT.map(o=>`<button type="button" data-v="${o}">${o}</button>`).join('')}</div>
+  <div data-agw style="display:none;margin-top:8px"><label class="f">Against</label><div class="seg" data-ag><button type="button" data-v="home">${esc(m.setup.home)}</button><button type="button" data-v="away">${esc(m.setup.away)}</button></div></div>
+  <div class="muted small" data-hint style="display:none;margin-top:6px">After saving, the penalty map opens so it counts with your penalties / free kicks (location optional).</div></div>`;}
+function wireSp(id,S){const w=$('#'+id);if(!w)return;const paint=()=>{$$('[data-o] button',w).forEach(b=>b.classList.toggle('on',b.dataset.v===S.outcome));const pk=S.outcome==='Free kick'||S.outcome==='Penalty';$('[data-agw]',w).style.display=pk?'':'none';$('[data-hint]',w).style.display=pk?'':'none';$$('[data-ag] button',w).forEach(b=>b.classList.toggle('on',b.dataset.v===S.against));};
+  $$('[data-o] button',w).forEach(b=>b.onclick=()=>{S.outcome=S.outcome===b.dataset.v?'':b.dataset.v;paint();});$$('[data-ag] button',w).forEach(b=>b.onclick=()=>{S.against=b.dataset.v;paint();});paint();}
+function chainPenalty(S,cat,st){if(S.outcome==='Free kick'||S.outcome==='Penalty')setTimeout(()=>openPenalty(S.against||'home',S.outcome==='Penalty'?'penalty':'freekick',st,{sp:spCat(cat)}),60);}
+const PHASE_DETAIL={
+  'Ruck':['Ruck formed / called','"Use it" called','Offside at ruck','Hands in ruck','Off feet','Side entry','Sealing off','Not rolling away','Collapsing ruck','Ball not available','Jackal contest','Hindmost foot / offside line'],
+  'Maul':['Maul formed / called','"Use it" called','Maul stopped – restart','Maul collapsed','Joining from side / in front','Obstruction / truck & trailer','Maul from lineout','Ball not made available','Scrum awarded (unplayable)','Offside at maul'],
+  'Tackle':['High tackle','Head contact','Dangerous tackle (tip / spear)','No arms / shoulder charge','Late tackle','Tackle in the air','Tackler not releasing','Tackler not rolling away','Ball carrier not releasing','Assist tackler off feet','Tackled player held on / holding on','Offside at tackle','Legal tackle – play on'],
+  'Scrum':['Early engagement','Feed not straight','Collapsing','Angle / boring in','Standing up / popping','Binding offence','Wheeling (deliberate)','Not square / unstable','Handling in scrum','Offside at scrum (9 / backs)','Time-wasting / not ready','Reset – no clear cause','Uncontested scrum'],
+  'Lineout':['Not straight','Closing the gap','Barging / obstruction','Early lift / support','Jumping across / using opponent','Offside – backs (10m)','Offside – non-participants','Wrong numbers','Leaving lineout early','Quick throw-in','Maul formed from lineout','Time-wasting'],
+  'Restart':['Not 10m','Directly into touch','Kick not from correct place','Chaser offside (in front of kicker)','Receiver taken in the air','Aerial contest – fair','Aerial contest – foul','Knock-on at restart','22m / goal-line drop-out','Quick restart','Time-wasting'],
+  'Foul Play':['High tackle','Head contact','Dangerous tackle (tip / spear)','Late / early charge','Shoulder charge','Striking / punching','Stamping / trampling','Tackling in the air','Obstruction','Off the ball','Cynical / professional foul','Repeated infringement','Dissent / misconduct','Retaliation'],
+  'Advantage':{pos:['Correct call','Good length (tactical / territorial)','Clear signal & "advantage over" call','Played to materiality','Came back for correct offence'],neg:['Called over too early','Played too long','Missed advantage','Unclear signal / communication','Came back for wrong offence']},
+  'General Play':{pos:['Accurate knock-on / forward pass calls','Accurate in-goal decision','Good materiality','Consistent thresholds','Good offside line management'],neg:['Missed knock-on','Missed forward pass','Wrong in-goal decision','Inconsistent thresholds','Missed offside']},
+  'Positioning':{pos:['Good angle at breakdown','Ahead of play','Tracked line break','Good set-piece position','Out of passing lanes','Good in-goal position'],neg:['Behind play','Poor angle / wrong side','In passing lane / interfered','Late to breakdown','Too close / too far','Blind side unmonitored']},
+  'Communication':{pos:['Clear signals','Good whistle tone','Effective preventative talk','Clear explanation to captain','Good To3 comms','Calm, confident voice'],neg:['Unclear / missed signal','Too much talk','Poor tone / body language','Late communication','Missed To3 information','Inconsistent language']},
+  'Game Mgmt':{pos:['Calm in flashpoint','Good use of captains','Good empathy for the game','Good time / injury management','Effective warnings / escalation','Managed tempo well'],neg:['Lost control','Inconsistent thresholds','Too officious','Missed flashpoint','Poor time / injury management','Late warnings']}};
+const DETAIL_ALIAS={'Restart / Kick-off':'Restart','Kick-off 10m':'Restart','Foul Play Report':'Foul Play','Lineout Offside':'Lineout','Breakdown Speed':'Ruck'};
+const detailFor=c=>PHASE_DETAIL[c]||PHASE_DETAIL[DETAIL_ALIAS[c]];
+const INFR=['Offside (general play)','Offside at ruck/maul','Tackler not releasing','Tackler not rolling away','Ball carrier not releasing','Hands in ruck','Off feet at ruck','Side entry','Sealing off','Collapsing maul','Scrum: early engage / angle','Scrum: collapsing','Scrum: standing up / popping','Scrum: binding offence','Lineout: lifting / jumping offence','Lineout: offside (not 10m / non-participants)','Lineout: closing gap / obstruction','Not straight / feed','High tackle','Dangerous tackle (other)','Obstruction','Deliberate knock-on','Repeated infringement','Dissent','Not 10m','Other'];
+const SANCTIONS=['Penalty','Yellow Card','Red Card','Penalty Try'];
+const FK_INFR=['Scrum: early engagement','Scrum: feed not straight','Scrum: time-wasting / not ready','Scrum: not forming within 30s','Lineout: closing the gap','Lineout: wrong positions (1m / 5–15m)','Lineout: incorrect numbers','Lineout: delaying formation','Time-wasting (general)','Wrong restart procedure','Other'];
+const KIND={penalty:'Penalty',freekick:'Free kick'};
+const isInf=e=>e.type==='penalty'||e.type==='freekick';
+const cardOf=e=>{const c=e.codes||[];if(c.includes('RC')||e.sanction==='Red Card')return'RC';if(c.includes('YC')||e.sanction==='Yellow Card')return'YC';return'';};
+const binMs=m=>Math.max(1,+m.setup.sinBin||(m.setup.format==='7s'?2:10))*60000;
+function served(e,m=M()){const c=m.clock,now=elapsed(m);if(e.half===c.half)return now-e.t;if(e.half===1&&c.half===2){const end=c.h1End!=null?c.h1End:HL(m);return Math.max(0,end-e.t)+Math.max(0,now-HL(m));}return 0;}
+function returnAt(e,m=M()){const len=binMs(m),c=m.clock;if(e.half===1){const end=c.h1End!=null?c.h1End:(c.half===2?HL(m):null);if(end!=null&&e.t+len>end)return{t:HL(m)+(len-(end-e.t)),half:2};}return{t:e.t+len,half:e.half};}
+const retLabel=(e,m=M())=>{const r=returnAt(e,m);return timeLabel(r.t,r.half,m)+(r.half!==e.half?' (2nd half)':'');};
+const POINTS={'Try':5,'Conversion':2,'Penalty Goal':3,'Drop Goal':3,'Penalty Try':7};
+const SC_BTNS=[['Try','T',5],['Conversion','C',2],['Penalty Goal','PG',3],['Drop Goal','DG',3],['Penalty Try','PT',7]];
+
+/* ============ events ============ */
+function addEvent(ev,st,silent){const m=M();st=st||stamp();const e=Object.assign({id:uid(),t:st.t,half:st.half,tag:'i',note:''},ev);m.events.push(e);save();if(!silent){renderAll();toast(evTitle(e)+' logged',()=>{delEvent(e.id)})}return e;}
+function delEvent(id){const m=M();const e=m.events.find(x=>x.id===id);m.events=m.events.filter(x=>x.id!==id);if(e&&e.videoId)VID.del(e.videoId);save();renderAll();}
+function sortedEvents(m=M()){return m.events.slice().sort((a,b)=>(a.half-b.half)||(a.t-b.t));}
+function teamName(t,m=M()){return t==='home'?m.setup.home||'Home':t==='away'?m.setup.away||'Away':'';}
+function evTitle(e){if(e.type==='penalty')return'Penalty v '+teamName(e.team);if(e.type==='freekick')return'Free kick v '+teamName(e.team);if(e.type==='score')return e.scoreType+' · '+teamName(e.team);if(e.type==='video')return'Clip · '+(e.category||'');if(e.type==='decision')return'Decision · '+(e.category||'General')+(e.team?' · '+teamName(e.team):'');if(e.type==='phase'&&SETPIECE[e.category]&&e.team)return e.category+' · '+teamName(e.team)+' '+spWord(e.category);return e.category||'Note';}
+function evDetail(e){if(e.type==='penalty')return[e.infr,e.sanction!=='Penalty'?e.sanction:'',e.zone].filter(Boolean).join(' · ');if(e.type==='freekick')return[e.infr,e.zone].filter(Boolean).join(' · ');if(e.type==='phase'||e.type==='decision'){const o=outTxt(e);return[o?'Decision: '+o:'',e.detail].filter(Boolean).join(' · ');}if(e.type==='score')return'+'+(POINTS[e.scoreType]||0);if(e.type==='video')return e.fileName||'';return'';}
+function scores(m=M()){const s={home:0,away:0};m.events.forEach(e=>{if(e.type==='score')s[e.team]+=POINTS[e.scoreType]||0});return s;}
+function scoreTxt(m=M()){const s=scores(m);return`${m.setup.home} ${s.home} – ${s.away} ${m.setup.away}`;}
+const TAGC={'+':'t-pos','-':'t-neg','i':'t-info'};const TAGT={'+':'+','-':'−','i':'i'};const TAGN={'+':'Positive','-':'Work-on','i':'Note'};
+const CODES={HID:'High Impact Decision',ND:'No Decision',E:'Error',YC:'Yellow Card',RC:'Red Card'};
+const CARD_CODE={'Yellow Card':'YC','Red Card':'RC'};
+const codeSumm=a=>CODE_KEYS.map(k=>k+' '+a.codes[k].n).join(' · ');
+const codeLegend=Object.keys(CODES).map(k=>k+' = '+CODES[k]).join(', ');const CODE_KEYS=Object.keys(CODES);
+const codePills=e=>(e.codes||[]).map(c=>`<span class="pill code code-${c}" title="${CODES[c]}">${c}</span>`).join('');
+const codeTxt=e=>(e.codes||[]).join(' / ');
+function codeChips(id,init){return`<label class="f" style="margin-top:10px">Decision code <span class="muted" style="text-transform:none">(optional · tap any)</span></label><div class="chips" id="${id}">${CODE_KEYS.map(k=>`<button type="button" data-v="${k}" class="cc-${k}${(init||[]).includes(k)?' on':''}">${k} · ${CODES[k]}</button>`).join('')}</div>`;}
+function wireCodes(id,set){$$('#'+id+' button').forEach(b=>b.onclick=()=>{const v=b.dataset.v;set.has(v)?set.delete(v):set.add(v);b.classList.toggle('on',set.has(v));});}
+const ordCodes=set=>CODE_KEYS.filter(k=>set.has(k));
+const tagPill=(t,extra='')=>`<span class="pill ${TAGC[t]||'t-info'} ${extra}">${TAGT[t]||'i'}</span>`;
+
+/* ============ pitch ============ */
+// Coordinate space: x 0..120 (dead-ball to dead-ball, in-goal 10m each end), y 0..70. Stored normalised: home defends LEFT.
+function pitchSVG(id,inner='',labels){const L=labels||{};return`<svg id="${id}" viewBox="-2 -9 124 88" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Rugby pitch">
+<rect x="0" y="0" width="120" height="70" fill="var(--pitch)" rx="1"/>
+<rect x="0" y="0" width="10" height="70" fill="rgba(0,0,0,.18)"/><rect x="110" y="0" width="10" height="70" fill="rgba(0,0,0,.18)"/>
+<g stroke="var(--pitchLine)" stroke-width=".45" fill="none">
+<rect x="0" y="0" width="120" height="70"/><line x1="10" y1="0" x2="10" y2="70" stroke-width=".8"/><line x1="110" y1="0" x2="110" y2="70" stroke-width=".8"/>
+<line x1="32" y1="0" x2="32" y2="70"/><line x1="88" y1="0" x2="88" y2="70"/><line x1="60" y1="0" x2="60" y2="70" stroke-width=".7"/>
+<line x1="50" y1="0" x2="50" y2="70" stroke-dasharray="2 2"/><line x1="70" y1="0" x2="70" y2="70" stroke-dasharray="2 2"/>
+<line x1="15" y1="0" x2="15" y2="70" stroke-dasharray="1 2" opacity=".6"/><line x1="105" y1="0" x2="105" y2="70" stroke-dasharray="1 2" opacity=".6"/>
+<line x1="10" y1="5" x2="110" y2="5" stroke-dasharray="1 3" opacity=".6"/><line x1="10" y1="65" x2="110" y2="65" stroke-dasharray="1 3" opacity=".6"/>
+<line x1="10" y1="15" x2="110" y2="15" stroke-dasharray="1 3" opacity=".6"/><line x1="10" y1="55" x2="110" y2="55" stroke-dasharray="1 3" opacity=".6"/>
+<path d="M10 32.2v-5M10 37.8v5M110 32.2v-5M110 37.8v5" stroke-width="1"/>
+</g>
+<g fill="var(--pitchLine)" font-size="3" font-family="Barlow Condensed,sans-serif" text-anchor="middle" opacity=".85">
+<text x="32" y="74">22</text><text x="50" y="74">10</text><text x="60" y="74">½</text><text x="70" y="74">10</text><text x="88" y="74">22</text><text x="10" y="74">TRY</text><text x="110" y="74">TRY</text></g>
+<g font-size="4" font-family="Barlow Condensed,sans-serif" font-weight="700">
+<text x="0" y="-3" fill="${L.lc||'var(--home)'}">◀ ${esc(L.left||'')}</text><text x="120" y="-3" text-anchor="end" fill="${L.rc||'var(--away)'}">${esc(L.right||'')} ▶</text></g>
+${inner}</svg>`;}
+function zoneOf(x,y){const lz=x<10?'Home in-goal':x<32?'Home 22':x<60?'Home half (22–50)':x<88?'Away half (50–22)':x<110?'Away 22':'Away in-goal';const ch=y<15?'Top 15m':y>55?'Bottom 15m':'Midfield';return{lz,ch,label:lz+' · '+ch};}
+function homeLeftNow(m=M()){const h1=m.setup.homeLeft!=='0';return m.clock.half===2?!h1:h1;}
+function svgPoint(svg,evt){const pt=svg.createSVGPoint();const t=evt.touches?evt.touches[0]:evt;pt.x=t.clientX;pt.y=t.clientY;const p=pt.matrixTransform(svg.getScreenCTM().inverse());return{x:Math.min(120,Math.max(0,p.x)),y:Math.min(70,Math.max(0,p.y))};}
+
+/* ============ dictation ============ */
+let DICT=null;
+(async()=>{try{if(window.claude&&window.claude.use){const d=await window.claude.use('dictation');if(d)DICT={kind:'claude',d};}}catch(e){}
+  if(!DICT){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(SR&&window.top===window.self)DICT={kind:'web',SR};}
+  $$('.mic').forEach(b=>b.classList.toggle('av',!!DICT));})();
+function wireMic(btn,ta){if(!btn)return;btn.classList.toggle('av',!!DICT);let active=null,base='';
+  btn.onclick=()=>{if(!DICT)return;
+    if(active){active.stop();return;}
+    base=ta.value?ta.value.replace(/\s*$/,' '):'';
+    if(DICT.kind==='claude'){const d=DICT.d;const offP=d.onPartial(({text})=>{ta.value=base+text});const offF=d.onFinal(({text})=>{base=base+text+' ';ta.value=base;ta.dispatchEvent(new Event('input'))});
+      const offS=d.onState(({state})=>{if(state==='idle'){btn.classList.remove('live');active=null;[offP,offF,offS].forEach(f=>typeof f==='function'&&f());}});
+      d.start().then(()=>{btn.classList.add('live');active={stop:()=>d.stop().catch(()=>{})}}).catch(e=>{btn.classList.remove('live');active=null;if(e&&e.code==='not_granted'){DICT=null;btn.classList.remove('av')}});
+    }else{const r=new DICT.SR();r.lang=navigator.language||'en-GB';r.interimResults=true;r.continuous=true;
+      r.onresult=ev=>{let fin='',part='';for(let i=ev.resultIndex;i<ev.results.length;i++){const t=ev.results[i][0].transcript;if(ev.results[i].isFinal)fin+=t;else part+=t}if(fin){base+=fin+' ';}ta.value=base+part;};
+      r.onend=()=>{btn.classList.remove('live');active=null;ta.dispatchEvent(new Event('input'))};r.onerror=()=>{};
+      try{r.start();btn.classList.add('live');active={stop:()=>r.stop()}}catch(e){}}
+  };}
+const MIC_SVG='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
+const noteBox=(id,ph)=>`<div class="notebox"><textarea id="${id}" placeholder="${ph||'Quick note (type or tap the mic)'}"></textarea><button type="button" class="mic" id="${id}Mic" aria-label="Dictate">${MIC_SVG}</button></div>`;
+
+/* ============ sheet / dialogs ============ */
+let sheetClose=null;
+function openSheet(html,onClose){$('#sheet').innerHTML=html;$('#scrim').classList.add('on');sheetClose=onClose||null;}
+function closeSheet(){$('#scrim').classList.remove('on');$('#sheet').innerHTML='';const f=sheetClose;sheetClose=null;f&&f();}
+$('#scrim').addEventListener('click',e=>{if(e.target.id==='scrim')closeSheet()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#scrim').classList.contains('on'))closeSheet()});
+function confirmBox(msg,okTxt='Confirm',danger=true){return new Promise(res=>{openSheet(`<div class="hd"><h2>Are you sure?</h2></div><p>${esc(msg)}</p><div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn" id="cfNo">Cancel</button><button class="btn ${danger?'danger':'pri'}" id="cfYes">${esc(okTxt)}</button></div>`,()=>res(false));
+  $('#cfNo').onclick=()=>closeSheet();$('#cfYes').onclick=()=>{sheetClose=null;closeSheet();res(true)};});}
+let toastT;function toast(msg,undo){const t=$('#toast');$('#toastMsg').textContent=msg;const a=$('#toastAct');if(undo){a.style.display='';a.textContent='Undo';a.onclick=()=>{undo();t.classList.remove('on')}}else a.style.display='none';t.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('on'),undo?4500:2600);}
+const sheetHead=(title,st)=>`<div class="hd"><h2>${esc(title)}</h2>${st?`<span class="stamp">${timeLabel(st.t,st.half)} · H${st.half}</span>`:''}<button class="iconbtn" onclick="closeSheet()" aria-label="Close">✕</button></div>`;
+
+/* ============ phase log sheet ============ */
+function openPhase(cat,preStamp){const st=preStamp||stamp();const det=detailFor(cat);const picked=new Set();
+  const sp=SETPIECE[cat];let spTeam='';const m0=M();
+  openSheet(sheetHead(cat,st)+(sp?`<label class="f">${sp}</label><div class="seg" id="spTeam" style="margin-bottom:10px"><button data-v="home">${esc(m0.setup.home)}</button><button data-v="away">${esc(m0.setup.away)}</button></div>`+spBlock('spOutW')+'<div style="height:10px"></div>':'')+(det?(Array.isArray(det)?`<label class="f">${esc(cat)} detail <span class="muted" style="text-transform:none">(tap any that apply)</span></label><div class="chips" id="phDet" style="margin-bottom:10px">${det.map(d=>`<button data-v="${esc(d)}">${esc(d)}</button>`).join('')}</div>`
+   :`<label class="f" style="color:var(--pos)">Positive <span class="muted" style="text-transform:none">(tap any)</span></label><div class="chips" id="phDet" style="margin-bottom:8px">${det.pos.map(d=>`<button class="dpos" data-v="+ ${esc(d)}">${esc(d)}</button>`).join('')}</div>
+     <label class="f" style="color:var(--neg)">Work-on <span class="muted" style="text-transform:none">(tap any)</span></label><div class="chips" id="phDetN" style="margin-bottom:10px">${det.neg.map(d=>`<button class="dneg" data-v="− ${esc(d)}">${esc(d)}</button>`).join('')}</div>`):'')+noteBox('phNote')+codeChips('phCodes')+`<div class="tagsave"><button class="p" data-t="+">+ SAVE<small>Positive</small></button><button class="m" data-t="-">− SAVE<small>Work-on</small></button><button class="i" data-t="i">i SAVE<small>Note</small></button></div>`);
+  wireMic($('#phNoteMic'),$('#phNote'));
+  $$('#phDet button,#phDetN button').forEach(b=>b.onclick=()=>{const v=b.dataset.v;picked.has(v)?picked.delete(v):picked.add(v);b.classList.toggle('on',picked.has(v));});
+  const codes=new Set();wireCodes('phCodes',codes);
+  const SO={outcome:'',against:''};if(sp)wireSp('spOutW',SO);
+  $$('#spTeam button').forEach(b=>b.onclick=()=>{spTeam=spTeam===b.dataset.v?'':b.dataset.v;$$('#spTeam button').forEach(x=>x.classList.toggle('on',x.dataset.v===spTeam));});
+  $$('.tagsave button').forEach(b=>b.onclick=()=>{if(sp&&(SO.outcome==='Free kick'||SO.outcome==='Penalty')&&!SO.against){toast('Pick which team it was against');return;}addEvent({type:cat==='Note'?'note':'phase',category:cat,team:sp?spTeam:undefined,outcome:sp?SO.outcome:undefined,against:sp?SO.against:undefined,detail:[...picked].join(', '),codes:ordCodes(codes),tag:b.dataset.t,note:$('#phNote').value.trim()},st,!!(sp&&(SO.outcome==='Free kick'||SO.outcome==='Penalty')));closeSheet();if(sp){renderAll();chainPenalty(SO,cat,st);}});}
+
+/* ============ decision note sheet (HID / ND / E / YC / RC) ============ */
+function openDecision(code){const m=M(),st=stamp();const codes=new Set([code]);let link='',team='';
+  const links=[...new Set(phaseList(m).concat(['Penalty','Free kick','Try / no try','Card','Advantage','Restart','Off the ball']))];
+  openSheet(sheetHead(code+' · '+CODES[code],st)+codeChips('dcCodes',[code]).replace('(optional · tap any)','(add another if it applies)')+`
+   <label class="f" style="margin-top:10px">Linked to <span class="muted" style="text-transform:none">(optional)</span></label><div class="chips" id="dcLink">${links.map(l=>`<button type="button" data-v="${esc(l)}">${esc(l)}</button>`).join('')}</div>
+   <div id="dcSpWrap" style="display:none;margin-top:10px">${spBlock('dcSp')}</div>
+   <label class="f" style="margin-top:10px">Team involved <span class="muted" style="text-transform:none">(optional)</span></label><div class="seg" id="dcTeam"><button data-v="home">${esc(m.setup.home)}</button><button data-v="away">${esc(m.setup.away)}</button><button data-v="" class="on">Neither</button></div>
+   <label class="f" style="margin-top:10px">Note</label>${noteBox('dcNote','What happened, what was decided (or missed)…')}
+   <label class="f" style="margin-top:10px">Coach verdict → save</label>
+   <div class="tagsave"><button class="p" data-t="+">+ SAVE<small>Correct / good</small></button><button class="m" data-t="-">− SAVE<small>Work-on</small></button><button class="i" data-t="i">i SAVE<small>Note only</small></button></div>`);
+  wireCodes('dcCodes',codes);wireMic($('#dcNoteMic'),$('#dcNote'));
+  const DS={outcome:'',against:''};wireSp('dcSp',DS);
+  $$('#dcLink button').forEach(b=>b.onclick=()=>{link=link===b.dataset.v?'':b.dataset.v;$$('#dcLink button').forEach(x=>x.classList.toggle('on',x.dataset.v===link));$('#dcSpWrap').style.display=spCat(link)?'':'none';if(!spCat(link)){DS.outcome='';DS.against='';wireSp('dcSp',DS);}});
+  $$('#dcTeam button').forEach(b=>b.onclick=()=>{team=b.dataset.v;$$('#dcTeam button').forEach(x=>x.classList.toggle('on',x===b));});
+  $$('.tagsave button').forEach(b=>b.onclick=()=>{if(!codes.size){toast('Pick at least one code');return;}const spd=spCat(link);if(spd&&(DS.outcome==='Free kick'||DS.outcome==='Penalty')&&!DS.against){toast('Pick which team it was against');return;}addEvent({type:'decision',category:link||'General',team,outcome:spd?DS.outcome:undefined,against:spd?DS.against:undefined,codes:ordCodes(codes),tag:b.dataset.t,note:$('#dcNote').value.trim()},st);closeSheet();if(spd)chainPenalty(DS,link,st);});}
+
+/* ============ penalty sheet ============ */
+function openPenalty(team,kind,preSt,opts){kind=kind||'penalty';opts=opts||{};const m=M(),st=preSt||stamp();const hl=homeLeftNow(m);
+  const left=hl?m.setup.home:m.setup.away,right=hl?m.setup.away:m.setup.home;
+  const P={team,kind,infr:'',sanction:'Penalty',tag:'i',x:null,y:null};const pcodes=new Set();
+  openSheet(sheetHead(KIND[kind]+' conceded by '+teamName(team),st)+`
+   <div class="seg" style="margin-bottom:8px" id="penKind"><button data-v="penalty">Penalty</button><button data-v="freekick">Free kick</button></div>
+   <div class="seg" style="margin-bottom:10px" id="penTeam"><button data-v="home">${esc(m.setup.home)}</button><button data-v="away">${esc(m.setup.away)}</button></div>
+   ${opts.sp?`<div class="notice" style="margin-bottom:10px">From the ${opts.sp.toLowerCase()} at ${timeLabel(st.t,st.half)}: pick the infringement and save (tapping the location is optional).</div>`:''}
+   <label class="f">Tap where it happened <span class="muted" style="text-transform:none">(ends as currently played)</span></label>
+   <div class="pitchwrap">${pitchSVG('penPitch','<g id="penMark"></g>',{left:left+' defends',right:right+' defends',lc:hl?'var(--home)':'var(--away)',rc:hl?'var(--away)':'var(--home)'})}</div>
+   <div class="muted small" id="penZone" style="margin:4px 0 10px">No location yet</div>
+   <label class="f">Infringement</label><div class="chips" id="penInfr"></div>
+   <div id="penSanWrap"><label class="f" style="margin-top:10px">Sanction</label><div class="chips" id="penSan">${SANCTIONS.map(i=>`<button data-v="${i}" class="${i==='Penalty'?'on':''}">${i}</button>`).join('')}</div></div>
+   <label class="f" style="margin-top:10px">Note</label>${noteBox('penNote','Decision context, materiality, positioning…')}
+   ${codeChips('penCodes')}
+   <label class="f" style="margin-top:10px">Coach verdict on the decision → save</label>
+   <div class="tagsave"><button class="p" data-t="+">+ SAVE<small>Correct / good</small></button><button class="m" data-t="-">− SAVE<small>Work-on</small></button><button class="i" data-t="i">i SAVE<small>Note only</small></button></div>`);
+  const segT=$('#penTeam');const setT=v=>{P.team=v;$$('button',segT).forEach(b=>b.classList.toggle('on',b.dataset.v===v));$('#sheet h2').textContent=KIND[P.kind]+' conceded by '+teamName(v);};setT(team);
+  const setK=v=>{P.kind=v;P.infr='';if(v==='freekick'){pcodes.delete('YC');pcodes.delete('RC');P.sanction='Penalty';$$('#penSan button').forEach(x=>x.classList.toggle('on',x.dataset.v==='Penalty'));$$('#penCodes button').forEach(x=>x.classList.toggle('on',pcodes.has(x.dataset.v)));}$$('#penKind button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));$('#penSanWrap').style.display=v==='freekick'?'none':'';
+    const base=(v==='freekick'?FK_INFR:INFR);const lst=opts.sp?base.filter(i=>i.startsWith(opts.sp+':')).concat(base.filter(i=>!i.startsWith(opts.sp+':'))):base;
+    $('#penInfr').innerHTML=lst.map(i=>`<button data-v="${esc(i)}">${esc(i)}</button>`).join('');
+    $$('#penInfr button').forEach(b=>b.onclick=()=>{P.infr=b.dataset.v;$$('#penInfr button').forEach(x=>x.classList.toggle('on',x===b));});setT(P.team);};
+  $$('#penKind button').forEach(b=>b.onclick=()=>setK(b.dataset.v));setK(kind);wireCodes('penCodes',pcodes);
+  const paintCodes=()=>$$('#penCodes button').forEach(x=>x.classList.toggle('on',pcodes.has(x.dataset.v)));
+  function syncCard(){pcodes.delete('YC');pcodes.delete('RC');const c=CARD_CODE[P.sanction];if(c)pcodes.add(c);paintCodes();}
+  $$('#penCodes button').forEach(b=>{const base=b.onclick;b.onclick=()=>{base();const v=b.dataset.v;if(v==='YC'||v==='RC'){if(pcodes.has(v)){pcodes.delete(v==='YC'?'RC':'YC');P.sanction=v==='YC'?'Yellow Card':'Red Card';if(P.kind==='freekick')setK('penalty');}else if(CARD_CODE[P.sanction]===v)P.sanction='Penalty';$$('#penSan button').forEach(x=>x.classList.toggle('on',x.dataset.v===P.sanction));paintCodes();}};});
+  $$('button',segT).forEach(b=>b.onclick=()=>setT(b.dataset.v));
+  const svg=$('#penPitch');svg.style.cursor='crosshair';
+  svg.addEventListener('click',ev=>{const p=svgPoint(svg,ev);P.dx=p.x;P.dy=p.y;
+    // normalise to home-defends-left
+    P.x=hl?p.x:120-p.x;P.y=hl?p.y:70-p.y;
+    $('#penMark').innerHTML=`<circle cx="${p.x}" cy="${p.y}" r="2.6" fill="${P.team==='home'?'var(--home)':'var(--away)'}" stroke="#fff" stroke-width=".7"/><circle cx="${p.x}" cy="${p.y}" r="5" fill="none" stroke="#fff" stroke-width=".4" opacity=".7"/>`;
+    const z=zoneOf(P.x,P.y);$('#penZone').textContent=`${z.label} · ${Math.round(P.x-10)}m from ${m.setup.home} try line`;});
+  $$('#penSan button').forEach(b=>b.onclick=()=>{P.sanction=b.dataset.v;$$('#penSan button').forEach(x=>x.classList.toggle('on',x===b));syncCard();});
+  wireMic($('#penNoteMic'),$('#penNote'));
+  $$('.tagsave button').forEach(b=>b.onclick=()=>{const z=P.x!=null?zoneOf(P.x,P.y):null;
+    addEvent({type:P.kind,codes:ordCodes(pcodes),team:P.team,infr:P.infr||'Unspecified',sanction:P.kind==='freekick'?'Free Kick':P.sanction,tag:b.dataset.t,note:$('#penNote').value.trim(),x:P.x,y:P.y,zone:z?z.label:''},st);closeSheet();});
+}
+
+/* ============ edit event sheet ============ */
+function openEdit(id){const m=M();const e=m.events.find(x=>x.id===id);if(!e)return;
+  const IL=e.type==='freekick'?FK_INFR:INFR;
+  const catField=isInf(e)?`<div class="full"><label class="f">Infringement</label><select id="edInfr">${IL.concat(IL.includes(e.infr)?[]:[e.infr]).map(i=>`<option ${i===e.infr?'selected':''}>${esc(i)}</option>`).join('')}</select></div>${e.type==='penalty'?`<div class="full"><label class="f">Sanction</label><select id="edSan">${SANCTIONS.concat(SANCTIONS.includes(e.sanction)?[]:[e.sanction]).map(i=>`<option ${i===e.sanction?'selected':''}>${esc(i)}</option>`).join('')}</select></div>`:''}`
+   :e.type==='score'?`<div class="full"><label class="f">Score type</label><select id="edScore">${Object.keys(POINTS).map(i=>`<option ${i===e.scoreType?'selected':''}>${i}</option>`).join('')}</select></div>`
+   :`<div class="full"><label class="f">Category</label><input type="text" id="edCat" value="${esc(e.category)}" list="phaseDL"><datalist id="phaseDL">${phaseList().map(p=>`<option>${esc(p)}</option>`).join('')}</datalist></div>${e.type==='phase'?`<div class="full"><label class="f">Detail</label><input type="text" id="edDet" value="${esc(e.detail||'')}" placeholder="e.g. Offside at ruck, Hands in ruck"></div>`:''}`;
+  const spE=e.type==='phase'&&SETPIECE[e.category];const teamField=(isInf(e)||e.type==='score'||e.type==='decision'||spE)?`<div class="full"><label class="f">${spE?SETPIECE[e.category]:'Team'}</label><select id="edTeam"><option value="home" ${e.team==='home'?'selected':''}>${esc(m.setup.home)}</option><option value="away" ${e.team==='away'?'selected':''}>${esc(m.setup.away)}</option>${e.type==='decision'||spE?`<option value="" ${!e.team?'selected':''}>${spE?'Not recorded':'Neither'}</option>`:''}</select></div>`:'';
+  openSheet(sheetHead('Edit entry')+`<div class="fgrid" style="grid-template-columns:1fr 1fr">
+    <div><label class="f">Match time (mm:ss)</label><input type="text" id="edTime" value="${fmt(e.t)}" inputmode="numeric"></div>
+    <div><label class="f">Half</label><select id="edHalf"><option value="1" ${e.half===1?'selected':''}>1st</option><option value="2" ${e.half===2?'selected':''}>2nd</option></select></div>
+    ${teamField}${catField}
+    <div class="full"><label class="f">Tag</label><div class="seg" id="edTag"><button data-v="+">+ Positive</button><button data-v="-">− Work-on</button><button data-v="i">i Note</button></div></div>
+    ${(e.type==='phase'&&SETPIECE[e.category])||(e.type==='decision'&&spCat(e.category))?`<div><label class="f">Referee decision</label><select id="edOut"><option value="">Not recorded</option>${SP_OUT.map(o=>`<option ${o===e.outcome?'selected':''}>${o}</option>`).join('')}</select></div><div><label class="f">Against (FK / PK)</label><select id="edAg"><option value="">—</option><option value="home" ${e.against==='home'?'selected':''}>${esc(m.setup.home)}</option><option value="away" ${e.against==='away'?'selected':''}>${esc(m.setup.away)}</option></select></div>`:''}
+    <div class="full">${codeChips('edCodes',e.codes)}</div>
+    <div class="full"><label class="f">Note</label>${noteBox('edNote')}</div></div>
+    <div class="row" style="justify-content:space-between;margin-top:14px"><button class="btn danger" id="edDel">Delete</button><button class="btn pri" id="edSave">Save changes</button></div>`);
+  $('#edNote').value=e.note||'';const ecodes=new Set(e.codes||[]);wireCodes('edCodes',ecodes);wireMic($('#edNoteMic'),$('#edNote'));
+  let tag=e.tag;const segs=$$('#edTag button');const st=()=>segs.forEach(b=>b.classList.toggle('on',b.dataset.v===tag));st();segs.forEach(b=>b.onclick=()=>{tag=b.dataset.v;st()});
+  $('#edDel').onclick=async()=>{sheetClose=null;closeSheet();if(await confirmBox('Delete this entry from the log?','Delete'))delEvent(id);};
+  $('#edSave').onclick=()=>{const t=parseTime($('#edTime').value);if(t==null){toast('Time must look like 23:15');return;}
+    e.t=t;e.half=+$('#edHalf').value;e.tag=tag;e.note=$('#edNote').value.trim();if($('#edSan'))e.sanction=$('#edSan').value;if(isInf(e)){ecodes.delete('YC');ecodes.delete('RC');const cc=CARD_CODE[e.sanction];if(cc)ecodes.add(cc);}e.codes=ordCodes(ecodes);if($('#edOut')){e.outcome=$('#edOut').value;e.against=(e.outcome==='Free kick'||e.outcome==='Penalty')?$('#edAg').value:'';}if(e.type==='decision'&&!e.codes.length){toast('A decision note needs at least one code');return;}
+    if($('#edTeam'))e.team=$('#edTeam').value;if($('#edInfr'))e.infr=$('#edInfr').value;if($('#edSan'))e.sanction=$('#edSan').value;if($('#edScore'))e.scoreType=$('#edScore').value;if($('#edCat'))e.category=$('#edCat').value.trim()||e.category;if($('#edDet'))e.detail=$('#edDet').value.trim();
+    save();closeSheet();renderAll();toast('Entry updated');};}
+
+/* ============ video storage (IndexedDB) ============ */
+const VID={db:null,mem:new Map(),
+  open(){if(this.db)return Promise.resolve(this.db);return new Promise((res,rej)=>{try{const r=indexedDB.open('rrc_video',1);r.onupgradeneeded=()=>r.result.createObjectStore('clips');r.onsuccess=()=>{this.db=r.result;res(this.db)};r.onerror=()=>rej(r.error);}catch(e){rej(e)}});},
+  async put(id,blob){try{const db=await this.open();await new Promise((res,rej)=>{const tx=db.transaction('clips','readwrite');tx.objectStore('clips').put(blob,id);tx.oncomplete=res;tx.onerror=()=>rej(tx.error)});return true;}catch(e){this.mem.set(id,blob);return false;}},
+  async get(id){if(this.mem.has(id))return this.mem.get(id);try{const db=await this.open();return await new Promise((res,rej)=>{const r=db.transaction('clips').objectStore('clips').get(id);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});}catch(e){return null}},
+  async del(id){this.mem.delete(id);try{const db=await this.open();db.transaction('clips','readwrite').objectStore('clips').delete(id);}catch(e){}}};
+let vidStamp=null,vidTag='+';
+
+/* ============ downloads ============ */
+let DL=null;(async()=>{try{if(window.claude&&window.claude.use)DL=await window.claude.use('downloads');}catch(e){}})();
+async function saveFile(name,data,mime){
+  if(DL){try{await DL.save({filename:name,data});toast('Saved '+name);return;}catch(e){if(e&&e.code==='declined'){toast('Download cancelled');return;}if(e&&e.code==='rate_limited'){toast('A download prompt is already open');return;}}}
+  try{const blob0=data instanceof Blob?data:new Blob([data],{type:mime});const file=new File([blob0],name,{type:mime});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){navigator.share({files:[file],title:name}).then(()=>toast('Shared '+name)).catch(e=>{if(e&&e.name!=='AbortError')toast('Could not share the file')});return;}}catch(e){}
+  try{const blob=data instanceof Blob?data:new Blob([data],{type:mime});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000);toast('Downloading '+name);}
+  catch(e){toast('Download not available in this view');}
+}
+function fileBase(m=M()){const s=m.setup;return(`RefCoach_${s.date}_${s.referee||'Referee'}_${s.home}_v_${s.away}`).replace(/[^\w\-]+/g,'_').replace(/_+/g,'_');}
+
+/* ============ render: top / theme / nav ============ */
+const NAV=[['setup','Setup','<path d="M4 6h16M4 12h16M4 18h10"/>'],['live','Live','<circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/>'],['stats','Log','<path d="M4 5h16M4 10h16M4 15h16M4 20h10"/>'],['video','Video','<rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3"/>'],['rubric','Rubric','<path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/>'],['review','Review','<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>']];
+const navIco=p=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
+const NAV_HIDDEN_SMALL=['setup','video','rubric'];
+$('#nav').innerHTML=NAV.map(([k,l,p])=>`<a href="#${k}" data-v="${k}">${navIco(p)}${l}</a>`).join('')
+  +`<button type="button" class="navmore" id="navMore" aria-haspopup="true" aria-expanded="false" aria-controls="navMenu">${navIco('<path d="M4 6h16M4 12h16M4 18h16"/>')}<span id="navMoreLbl">Menu</span></button>`;
+document.body.insertAdjacentHTML('beforeend',`<nav class="navmenu" id="navMenu" hidden aria-label="All sections">${NAV.map(([k,l,p])=>`<a href="#${k}" data-v="${k}">${navIco(p)}${l}</a>`).join('')}</nav>`);
+function setNavMenu(open){const mn=$('#navMenu'),b=$('#navMore');mn.hidden=!open;b.setAttribute('aria-expanded',String(open));if(open){const a=mn.querySelector('a.on')||mn.querySelector('a');a&&a.focus({preventScroll:true});}}
+$('#navMore').addEventListener('click',e=>{e.stopPropagation();setNavMenu($('#navMenu').hidden);});
+$('#navMenu').addEventListener('click',e=>{if(e.target.closest('a'))setNavMenu(false);});
+document.addEventListener('click',e=>{if(!$('#navMenu').hidden&&!e.target.closest('#navMenu,#navMore'))setNavMenu(false);});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#navMenu').hidden){setNavMenu(false);$('#navMore').focus();}});
+function route(){let v=(location.hash||'').slice(1);if(!NAV.some(n=>n[0]===v))v=M().events.length||M().clock.elapsed?'live':'setup';
+  $$('.view').forEach(s=>s.classList.toggle('on',s.id==='v-'+v));$$('#nav a,#navMenu a').forEach(a=>a.classList.toggle('on',a.dataset.v===v));
+  {const hid=NAV_HIDDEN_SMALL.includes(v);$('#navMore').classList.toggle('on',hid);$('#navMoreLbl').textContent=hid?NAV.find(n=>n[0]===v)[1]:'Menu';}
+  if(v==='review')renderReview();if(v==='stats')renderLog();if(v==='rubric')renderRubric();if(v==='video')renderVideo();if(v==='setup')renderSetup();window.scrollTo(0,0);}
+window.addEventListener('hashchange',route);
+function applyTheme(){document.documentElement.dataset.theme=prefs.theme;$('#themeBtn').innerHTML=prefs.theme==='sun'
+  ?'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>'
+  :'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4.5"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3M4.6 4.6l2.1 2.1M17.3 17.3l2.1 2.1M4.6 19.4l2.1-2.1M17.3 6.7l2.1-2.1"/></svg>';
+  $('meta[name=theme-color]').content=prefs.theme==='sun'?'#ffffff':'#0b1110';$('#themeBtn').title=prefs.theme==='sun'?'Switch to dark mode':'Switch to sunlight (high-contrast) mode';}
+$('#themeBtn').onclick=()=>{prefs.theme=prefs.theme==='sun'?'dark':'sun';savePrefs();applyTheme();if($('#v-review').classList.contains('on'))renderReview();};
+
+/* ============ render: clock ============ */
+function renderClock(){const m=M(),c=m.clock,e=elapsed(m),base=HL(m)*(c.half===2?2:1);
+  const main=e>base?fmt(base):fmt(e),ot=e>base?`<span class="ot">+${fmtShort(e-base)}</span>`:'';
+  $('#clock').innerHTML=main+ot;$('#miniClock').textContent=e>base?fmt(base)+'+':fmt(e);$('#miniClock').classList.toggle('run',c.running);
+  $('#injTime').textContent=fmtShort(injMs(m));
+  $('#halfBadge').textContent=c.ended?'Full-time':c.injRunning?'Stoppage · '+(c.half===1?'1st':'2nd')+' half':(c.half===1?'1st Half':'2nd Half');
+  const sb=$('#startBtn');sb.textContent=c.running?'PAUSE':(e>0?'RESUME':'START');sb.classList.toggle('pri',!c.running);
+  $('#injBtn').classList.toggle('on',c.injRunning);$('#injBtn').textContent=c.injRunning?'RESUME PLAY':'INJURY';
+  $('#halfBtn').textContent=c.half===1?'HALF-TIME':'FULL-TIME';$('#halfBtn').disabled=c.ended;
+  $('#vidStampPrev').textContent=timeLabel(e,c.half);renderBins();}
+function renderBins(){const m=M(),len=binMs(m);const out=[];
+  sortedEvents(m).forEach(e=>{const k=cardOf(e);if(!k)return;const who=e.team?teamName(e.team,m):'Team not set';
+    if(k==='RC'){out.push(`<div class="bin RC"><span class="pill code code-RC">RC</span><span><b>${esc(who)}</b> · sent off at <b>${timeLabel(e.t,e.half,m)}</b> (H${e.half})</span></div>`);return;}
+    const left=len-served(e,m);if(left<=-90000)return;
+    out.push(left>0?`<div class="bin YC"><span class="pill code code-YC">YC</span><span><b>${esc(who)}</b> · carded <b>${timeLabel(e.t,e.half,m)}</b> · back ${retLabel(e,m)}</span><span class="cd">${fmt(left)}</span></div>`
+      :`<div class="bin YC ready"><span class="pill code code-YC">YC</span><span><b>${esc(who)}</b> · carded ${timeLabel(e.t,e.half,m)}</span><span class="cd">Can return</span></div>`);});
+  const h=out.join('');const el=$('#binList');if(el.innerHTML!==h)el.innerHTML=h;}
+setInterval(()=>{const c=M().clock;if(c.running||c.injRunning)renderClock();},250);
+
+/* ============ render: live ============ */
+function renderLive(){const m=M(),s=m.setup,sc=scores(m);
+  $('#bHome').textContent=s.home;$('#bAway').textContent=s.away;$('#sHome').textContent=sc.home;$('#sAway').textContent=sc.away;
+  $('#penHomeName').textContent=s.home.toUpperCase();$('#penAwayName').textContent=s.away.toUpperCase();$('#fkHomeName').textContent=s.home.toUpperCase();$('#fkAwayName').textContent=s.away.toUpperCase();
+  $('#fkHomeCnt').textContent=m.events.filter(e=>e.type==='freekick'&&e.team==='home').length;$('#fkAwayCnt').textContent=m.events.filter(e=>e.type==='freekick'&&e.team==='away').length;
+  $('#penHomeCnt').textContent=m.events.filter(e=>e.type==='penalty'&&e.team==='home').length;$('#penAwayCnt').textContent=m.events.filter(e=>e.type==='penalty'&&e.team==='away').length;
+  $('#dcRow').innerHTML=CODE_KEYS.map(k=>`<button class="dcbtn ${k}" data-dc="${k}">${k}<small>${CODES[k]} · ${m.events.filter(e=>(e.codes||[]).includes(k)).length}</small></button>`).join('');
+  $('#halfLenTxt').textContent=`${s.halfLength}' halves · ${s.format}`;
+  $('#scoreBtns').innerHTML=['home','away'].map(t=>`<div class="col ${t}">${SC_BTNS.map(([n,a,p])=>`<button data-team="${t}" data-sc="${n}" title="${n} (${p})">${a}<small>+${p}</small></button>`).join('')}</div>`).join('');
+  const counts={};m.events.forEach(e=>{if(e.type==='phase')counts[e.category]=(counts[e.category]||0)+1});
+  $('#phaseGrid').innerHTML=phaseList(m).map(p=>`<button class="phbtn${KEY_PHASES.includes(p)?' key':''}" data-ph="${esc(p)}">${esc(p)}${counts[p]?`<span class="cnt">${counts[p]}</span>`:''}</button>`).join('');
+  const aw=sortedEvents(m).filter(e=>isInf(e)||cardOf(e)).reverse();
+  $('#awList').innerHTML=aw.length?aw.map(e=>{const k=cardOf(e),tc=e.team==='home'?'c-home':e.team==='away'?'c-away':'';const kind=e.type==='penalty'?'PK':e.type==='freekick'?'FK':'';
+    return`<li><span class="awt">${timeLabel(e.t,e.half)}<small>${e.half===1?'1st':'2nd'} half</small></span><div class="ds">${kind?`<span class="kb ${tc}">${kind}</span>`:''}${k?`<span class="pill code code-${k}">${k}</span>`:''}<b class="${tc}">${esc(kind?'v '+teamName(e.team):evTitle(e))}</b> <span class="muted small">${esc(e.infr||e.note||'')}</span>${k==='YC'?`<div class="muted small">Sin-bin: back ${retLabel(e)}</div>`:k==='RC'?`<div class="muted small">Sent off at ${timeLabel(e.t,e.half)}</div>`:''}</div><button class="btn sm" data-edit="${e.id}" aria-label="Edit">✎</button></li>`}).join('')
+    :'<li class="empty" style="display:block">No penalties, free kicks or cards yet. Each one is time-stamped the moment you tap its button.</li>';
+  const rec=sortedEvents(m).slice(-6).reverse();
+  $('#recentList').innerHTML=rec.length?rec.map(evRow).join(''):'<li class="empty" style="display:block">Nothing logged yet. Start the clock and tap a phase.</li>';
+  $('#topMatch').textContent=`${s.home} v ${s.away}${s.referee?' · '+s.referee:''}`;renderBins();}
+function evRow(e){const tc=isInf(e)||e.type==='score'||(e.type==='phase'&&e.team)?(e.team==='home'?'c-home':'c-away'):'';return`<li><span class="tm">${timeLabel(e.t,e.half)}</span>${tagPill(e.tag)}<div class="ds">${codePills(e)}<b class="${tc}">${esc(evTitle(e))}</b>${evDetail(e)?` <span class="muted small">${esc(evDetail(e))}</span>`:''}${e.note?`<div class="n">${esc(e.note)}</div>`:''}</div><button class="btn sm" data-edit="${e.id}" aria-label="Edit">✎</button></li>`;}
+$('#scoreBtns').addEventListener('click',e=>{const b=e.target.closest('button[data-sc]');if(!b)return;addEvent({type:'score',team:b.dataset.team,scoreType:b.dataset.sc,tag:'i'});});
+$('#dcRow').addEventListener('click',e=>{const b=e.target.closest('[data-dc]');if(b)openDecision(b.dataset.dc);});
+$('#phaseGrid').addEventListener('click',e=>{const b=e.target.closest('[data-ph]');if(b)openPhase(b.dataset.ph);});
+document.addEventListener('click',e=>{const b=e.target.closest('[data-edit]');if(b)openEdit(b.dataset.edit);});
+$('#penHome').onclick=()=>openPenalty('home','penalty');$('#penAway').onclick=()=>openPenalty('away','penalty');$('#fkHome').onclick=()=>openPenalty('home','freekick');$('#fkAway').onclick=()=>openPenalty('away','freekick');
+$('#startBtn').onclick=()=>{M().clock.running?clockPause():clockStart();};
+$('#injBtn').onclick=toggleInjury;
+$('#halfBtn').onclick=async()=>{const c=M().clock;if(await confirmBox(c.half===1?'End the first half? The clock moves to the start of the 2nd half and ends switch on the pitch map.':'End the match (full-time)?',c.half===1?'Half-time':'Full-time',false))halfTime();};
+$('#resetBtn').onclick=async()=>{if(await confirmBox('Reset the match clock to 00:00 (1st half)? Logged entries are kept.','Reset clock')){const c=M().clock;Object.assign(c,{h1End:null,running:false,startedAt:0,elapsed:0,half:1,inj:0,injRunning:false,injStartedAt:0,ended:false});save(true);renderClock();}};
+$('#noteBtn').onclick=()=>openPhase('Note');
+$$('[data-adj]').forEach(b=>b.onclick=()=>adjustClock(+b.dataset.adj));
+
+/* ============ render: setup ============ */
+function renderSetup(){const m=M(),s=m.setup;
+  $$('#v-setup input[data-k]').forEach(i=>{if(document.activeElement!==i)i.value=s[i.dataset.k]??''});
+  $$('#v-setup [data-seg]').forEach(seg=>{const k=seg.dataset.seg;$$('button',seg).forEach(b=>b.classList.toggle('on',String(s[k])===b.dataset.v))});
+  const pillars=rubric(s);$('#rubricNote').innerHTML=`<b>Rubric loaded:</b> ${s.format} · ${s.role==='AR'?'Assistant Referee':'Referee'} · ${LEVELS[s.level]} — ${pillars.length} competencies (${pillars.map(p=>esc(p.name)).join(', ')}).`;
+  const list=Object.values(store.matches).sort((a,b)=>(b.setup.date||'').localeCompare(a.setup.date||'')||b.created-a.created);
+  $('#matchList').innerHTML=list.map(x=>`<li><div style="flex:1;min-width:0"><b>${esc(x.setup.home)} v ${esc(x.setup.away)}</b> ${x.id===store.currentId?'<span class="cur">· current</span>':''}<div class="muted small">${esc(x.setup.date)} · ${esc(x.setup.referee||'Referee')} · ${x.setup.format} ${x.setup.role} L${x.setup.level} · ${x.events.length} entries</div></div>${x.id!==store.currentId?`<button class="btn sm" data-open="${x.id}">Open</button>`:''}<button class="btn sm danger" data-delm="${x.id}" aria-label="Delete match">🗑</button></li>`).join('');}
+$$('#v-setup input[data-k]').forEach(i=>i.addEventListener('input',()=>{const s=M().setup;let v=i.value;if(i.dataset.k==='halfLength')v=Math.max(1,Math.min(60,+v||0))||'';if(i.dataset.k==='sinBin')v=Math.max(1,Math.min(20,+v||0))||'';s[i.dataset.k]=v;save();renderLive();renderClock();$('#topMatch').textContent=`${s.home} v ${s.away}`;}));
+$$('#v-setup [data-seg]').forEach(seg=>seg.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const s=M().setup,k=seg.dataset.seg;s[k]=b.dataset.v;
+  if(k==='format'){s.halfLength=b.dataset.v==='7s'?7:40;s.sinBin=b.dataset.v==='7s'?2:10;}save();renderSetup();renderLive();renderClock();}));
+$('#newMatchBtn').onclick=()=>{newMatch();renderAll();toast('New match created');};
+$('#matchList').addEventListener('click',async e=>{const o=e.target.closest('[data-open]'),d=e.target.closest('[data-delm]');
+  if(o){store.currentId=o.dataset.open;save(true);renderAll();toast('Match opened');}
+  if(d&&await confirmBox('Delete this match and all its entries? This cannot be undone.','Delete match')){const m=store.matches[d.dataset.delm];m.events.forEach(x=>x.videoId&&VID.del(x.videoId));media(m).images.forEach(im=>IMG.del(im.id));delete store.matches[d.dataset.delm];if(store.currentId===d.dataset.delm)store.currentId=Object.keys(store.matches)[0]||null;save(true);renderAll();}});
+$('#sampleBtn').onclick=()=>{const m=blankMatch();Object.assign(m.setup,{referee:'J. Smith',coach:'D. Harper',competition:'UAE Premiership',home:'Dubai Hurricanes',away:'Abu Dhabi Harlequins',venue:'The Sevens Stadium',level:'2'});
+  const ev=(t,h,o)=>m.events.push(Object.assign({id:uid(),t:t*1000,half:h,tag:'i',note:''},o));
+  const rnd=(a,b)=>a+Math.random()*(b-a);
+  ev(95,1,{type:'phase',category:'Scrum',team:'home',outcome:'Play on',tag:'+',note:'Good, calm engagement sequence; square scrum'});
+  ev(260,1,{type:'penalty',team:'away',infr:'Off feet at ruck',sanction:'Penalty',tag:'+',x:72,y:30,zone:zoneOf(72,30).label,note:'Clear and material'});
+  ev(410,1,{type:'phase',category:'Tackle',tag:'-',note:'Slow to arrive, poor angle on blind side'});
+  ev(600,1,{type:'score',team:'home',scoreType:'Try'});ev(650,1,{type:'score',team:'home',scoreType:'Conversion'});
+  ev(780,1,{type:'penalty',team:'home',infr:'Offside at ruck/maul',sanction:'Penalty',tag:'i',x:45,y:52,zone:zoneOf(45,52).label});
+  ev(1100,1,{type:'phase',category:'Communication',tag:'+',note:'Strong preventative talk at the breakdown'});
+  ev(1180,1,{type:'phase',category:'Ruck',detail:'"Use it" called, Offside at ruck',tag:'+',note:'Clear ruck management'});
+  ev(1650,1,{type:'phase',category:'Maul',detail:'Maul from lineout, Joining from side / in front',tag:'-',note:'Missed side entry at maul'});
+  ev(1700,1,{type:'freekick',team:'away',infr:'Scrum: early engagement',sanction:'Free Kick',tag:'+',x:40,y:35,zone:zoneOf(40,35).label});
+  ev(2900,2,{type:'freekick',team:'home',infr:'Lineout: closing the gap',sanction:'Free Kick',tag:'i',x:84,y:8,zone:zoneOf(84,8).label});
+  ev(3300,2,{type:'phase',category:'Ruck',detail:'Hands in ruck, Jackal contest',tag:'-',note:'Late whistle; ball already out'});
+  ev(1320,1,{type:'penalty',team:'home',infr:'Hands in ruck',sanction:'Penalty',tag:'-',x:22,y:36,zone:zoneOf(22,36).label,note:'Ball was out; not material'});
+  ev(1500,1,{type:'score',team:'away',scoreType:'Penalty Goal'});
+  ev(1800,1,{type:'phase',category:'Lineout',team:'away',tag:'-',note:'Missed closing the gap'});
+  ev(2050,1,{type:'penalty',team:'away',infr:'High tackle',sanction:'Yellow Card',codes:['HID','YC'],tag:'+',x:96,y:20,zone:zoneOf(96,20).label,note:'Correct use of framework, well communicated'});
+  for(let i=0;i<9;i++){const x=rnd(14,106),y=rnd(4,66);ev(2500+i*190,2,{type:'penalty',team:i%3?'home':'away',infr:INFR[Math.floor(rnd(0,14))],sanction:'Penalty',tag:['+','-','i'][i%3],x,y,zone:zoneOf(x,y).label});}
+  ev(2400,2,{type:'phase',category:'Lineout',team:'home',tag:'+',note:'Good management of the gap'});ev(3100,2,{type:'phase',category:'Scrum',team:'away',outcome:'Reset',tag:'i',note:'Collapsed, no clear cause'});ev(3160,2,{type:'phase',category:'Scrum',team:'away',outcome:'Free kick',against:'home',tag:'+',note:'Early engagement'});
+  ev(2600,2,{type:'phase',category:'Positioning',detail:'− Behind play, − Late to breakdown',tag:'-',note:'Behind play after line break'});ev(2700,2,{type:'phase',category:'Advantage',detail:'+ Correct call, + Clear signal & "advantage over" call',tag:'+'});ev(2750,2,{type:'phase',category:'Tackle',detail:'High tackle, Head contact',tag:'+',note:'Spotted and acted'});ev(3000,2,{type:'score',team:'away',scoreType:'Try'});ev(3500,2,{type:'phase',category:'Game Mgmt',tag:'+',note:'Managed captains well after flashpoint'});ev(4100,2,{type:'score',team:'home',scoreType:'Penalty Goal'});
+  m.clock.half=2;m.clock.h1End=2460*1000;m.clock.elapsed=4500*1000;m.clock.inj=154000;
+  m.ratings={safety:{score:4,feedback:'Good foul-play process.'},breakdown:{score:2,feedback:'Arrival speed and angles at the tackle.'},setpiece:{score:3,feedback:''},positioning:{score:3,feedback:''},communication:{score:4,feedback:'Clear signals.'},management:{score:4,feedback:''},to3:{score:3,feedback:''}};
+  const cs=(i,c)=>{const e=m.events[i];if(e)e.codes=c;};cs(1,['HID']);cs(7,['HID','E']);cs(10,['HID']);cs(12,['ND']);
+  ev(2200,1,{type:'decision',category:'Foul Play',team:'home',codes:['ND'],tag:'-',note:'Off-the-ball shoulder at ruck, not seen or acted on'});
+  ev(3700,2,{type:'penalty',team:'home',infr:'Dangerous tackle (other)',sanction:'Red Card',codes:['HID','RC'],tag:'+',x:30,y:44,zone:zoneOf(30,44).label,note:'Tip tackle; correct process, clear communication'});
+  ev(3950,2,{type:'decision',category:'Try / no try',team:'away',codes:['HID'],tag:'+',note:'Held up over the line, correctly ruled; good position'});
+  ev(4300,2,{type:'decision',category:'Advantage',codes:['E'],tag:'-',note:'Advantage called over too early; tactical advantage not gained'});
+  m.summary={strengths:'Calm presence, strong communication and sound foul-play process.',develop:'Speed to the breakdown and viewing angle; materiality on minor ruck offences.',action:'Two clips per week on breakdown arrival; fitness: repeat-sprint sessions. Review with coach in 2 weeks.'};
+  store.matches[m.id]=m;store.currentId=m.id;save(true);renderAll();toast('Sample match loaded');};
+
+/* ============ render: stats log ============ */
+let logFilter='all';
+const FILTERS=[['all','All'],['code:HID','HID'],['code:ND','ND'],['code:E','E'],['decision','Decision notes'],['phase','Phases of play'],['penalty','Penalties'],['freekick','Free kicks'],['score','Scores'],['note','Notes'],['video','Video'],['-','Work-on only']];
+function renderLog(){const m=M();$('#logFilters').innerHTML=FILTERS.map(([k,l])=>`<button class="chip ${logFilter===k?'on':''}" data-f="${k}">${l}</button>`).join('');
+  let evs=sortedEvents(m);if(logFilter.startsWith('code:')){const c=logFilter.slice(5);evs=evs.filter(e=>(e.codes||[]).includes(c));}else if(logFilter==='-')evs=evs.filter(e=>e.tag==='-');else if(logFilter!=='all')evs=evs.filter(e=>e.type===logFilter);
+  $('#logCount').textContent=`${evs.length} of ${m.events.length} entries`;
+  $('#logBody').innerHTML=evs.length?evs.map(e=>{const tc=e.team==='home'?'c-home':e.team==='away'?'c-away':'';return`<tr><td class="tm">${timeLabel(e.t,e.half)}<div class="muted small">H${e.half}</div></td><td style="white-space:nowrap">${(()=>{const k=cardOf(e),kind=e.type==='penalty'?'PK':e.type==='freekick'?'FK':'';if(!kind&&!k)return'<span class="muted">–</span>';return`${kind?`<span class="kb ${tc}">${kind}</span>`:''}${k?`<span class="pill code code-${k}">${k}</span>`:''}<div class="muted small">at ${timeLabel(e.t,e.half)}${k==='YC'?' · back '+retLabel(e):''}</div>`})()}</td><td>${esc(e.type)}</td><td>${codePills(e)}<b class="${e.team==='home'?'c-home':e.team==='away'?'c-away':''}">${esc(evTitle(e))}</b><div class="muted small">${esc(evDetail(e))}</div></td><td><span class="tagbtn" data-cyc="${e.id}">${tagPill(e.tag)}</span></td><td><input class="inl" type="text" data-note="${e.id}" value="${esc(e.note)}" placeholder="Add note"></td><td style="white-space:nowrap"><button class="btn sm" data-edit="${e.id}" aria-label="Edit">✎</button> <button class="btn sm danger" data-del="${e.id}" aria-label="Delete">🗑</button></td></tr>`}).join('')
+   :`<tr><td colspan="7" class="empty">No entries${logFilter!=='all'?' for this filter':''}.</td></tr>`;}
+$('#logFilters').addEventListener('click',e=>{const b=e.target.closest('[data-f]');if(b){logFilter=b.dataset.f;renderLog();}});
+$('#logBody').addEventListener('click',async e=>{const c=e.target.closest('[data-cyc]'),d=e.target.closest('[data-del]');
+  if(c){const ev=M().events.find(x=>x.id===c.dataset.cyc);ev.tag={'+':'-','-':'i','i':'+'}[ev.tag]||'+';save();renderLog();renderLive();}
+  if(d&&await confirmBox('Delete this entry?','Delete'))delEvent(d.dataset.del);});
+$('#logBody').addEventListener('change',e=>{const i=e.target.closest('[data-note]');if(!i)return;const ev=M().events.find(x=>x.id===i.dataset.note);if(ev){ev.note=i.value.trim();save();renderLive();toast('Note saved');}});
+
+/* ============ render: video ============ */
+function renderVideo(){const m=M();const opts=phaseList(m).concat(['Penalty','Free Kick','Score','General / Other']);const cur=$('#vPhase').value;
+  $('#vPhase').innerHTML=opts.map(o=>`<option ${o===cur?'selected':''}>${esc(o)}</option>`).join('');
+  $$('[data-vtag] button').forEach(b=>b.classList.toggle('on',b.dataset.v===vidTag));
+  const clips=sortedEvents(m).filter(e=>e.type==='video');
+  $('#clipList').innerHTML=clips.length?clips.map(e=>`<li><span class="tm">${timeLabel(e.t,e.half)}</span>${tagPill(e.tag)}<div class="ds"><b>${esc(e.category)}</b> <span class="muted small">${e.size?(e.size/1048576).toFixed(1)+' MB':''}${e.memOnly?' · this session only':''}</span>${e.note?`<div class="n">${esc(e.note)}</div>`:''}</div><div class="row" style="flex-wrap:nowrap"><button class="btn sm" data-play="${e.videoId}">▶</button><button class="btn sm" data-edit="${e.id}">✎</button></div></li>`).join('')
+   :'<li class="empty" style="display:block">No clips yet.</li>';}
+$$('[data-vtag] button').forEach(b=>b.onclick=()=>{vidTag=b.dataset.v;renderVideo();});
+$('#vidRecLbl').addEventListener('click',()=>{vidStamp=stamp();});
+$('#vidInput').addEventListener('change',async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;const st=vidStamp||stamp();vidStamp=null;const vid=uid();
+  const ok=await VID.put(vid,f);addEvent({type:'video',category:$('#vPhase').value,tag:vidTag,note:$('#vNote').value.trim(),videoId:vid,fileName:f.name||'clip',size:f.size,memOnly:!ok},st);
+  $('#vNote').value='';e.target.value='';if(!ok)toast('Clip kept for this session only (storage unavailable)');renderVideo();});
+let playerURL=null;
+$('#clipList').addEventListener('click',async e=>{const b=e.target.closest('[data-play]');if(!b)return;const blob=await VID.get(b.dataset.play);if(!blob){toast('Clip not found on this device');return;}
+  if(playerURL)URL.revokeObjectURL(playerURL);playerURL=URL.createObjectURL(blob);const p=$('#player');p.src=playerURL;p.style.display='block';p.play().catch(()=>{});});
+
+/* ============ render: rubric ============ */
+function renderRubric(){const m=M(),s=m.setup,pill=rubric(s),sc=SCALE[s.scale]||SCALE['5'];
+  $('#rubTitle').textContent=`Competency Assessment · ${s.role==='AR'?'Assistant Referee':'Referee'}`;
+  $('#rubSub').innerHTML=`<span class="lvl">${s.format}</span><span class="lvl">${LEVELS[s.level]}</span>${s.level>1?'Indicators build on the previous level.':''} Indicators are drafted against World Rugby\'s match-official competency areas; adapt to your union\'s current framework.`;
+  $('#rubList').innerHTML=pill.map(p=>{const r=m.ratings[p.id]||{};return`<div class="comp"><h4>${esc(p.name)}</h4><div class="muted small">${esc(p.desc)}</div>
+   <ul>${p.ind[s.level].map(i=>`<li>${esc(i)}</li>`).join('')}</ul>
+   <div class="rate" data-comp="${p.id}">${sc.map(([v,l])=>`<button data-r="${v}" class="${r.score===v?'on':''}">${s.scale==='5'?v:''}<small>${l}</small></button>`).join('')}</div>
+   <div class="notebox"><textarea data-fb="${p.id}" placeholder="Specific feedback / evidence…" rows="2">${esc(r.feedback||'')}</textarea><button type="button" class="mic" data-fbmic="${p.id}" aria-label="Dictate">${MIC_SVG}</button></div></div>`}).join('');
+  $$('[data-fbmic]').forEach(b=>wireMic(b,$(`[data-fb="${b.dataset.fbmic}"]`)));
+  updAvg();}
+function avgRating(m=M()){const ids=rubric(m.setup).map(p=>p.id);const v=ids.map(i=>m.ratings[i]&&m.ratings[i].score).filter(Boolean);return v.length?(v.reduce((a,b)=>a+b,0)/v.length):null;}
+function updAvg(){const a=avgRating(),s=M().setup.scale;$('#rubAvg').textContent=a?a.toFixed(1)+' / '+s:'–';}
+$('#rubList').addEventListener('click',e=>{const b=e.target.closest('[data-r]');if(!b)return;const id=b.parentElement.dataset.comp,m=M();m.ratings[id]=m.ratings[id]||{};const v=+b.dataset.r;m.ratings[id].score=m.ratings[id].score===v?null:v;save();
+  $$('button',b.parentElement).forEach(x=>x.classList.toggle('on',+x.dataset.r===m.ratings[id].score));updAvg();});
+$('#rubList').addEventListener('input',e=>{const t=e.target.closest('[data-fb]');if(!t)return;const m=M(),id=t.dataset.fb;m.ratings[id]=m.ratings[id]||{};m.ratings[id].feedback=t.value;save();});
+
+/* ============ review ============ */
+function analysis(m=M()){const ev=m.events,pens=ev.filter(e=>e.type==='penalty'),fks=ev.filter(e=>e.type==='freekick'),infs=ev.filter(isInf);
+  const pc={home:0,away:0,home1:0,home2:0,away1:0,away2:0};pens.forEach(p=>{pc[p.team]++;pc[p.team+p.half]++;});
+  const fc={home:0,away:0,home1:0,home2:0,away1:0,away2:0};fks.forEach(p=>{fc[p.team]++;fc[p.team+p.half]++;});
+  const cards=pens.filter(p=>/Card/.test(p.sanction));
+  const infr={};infs.forEach(p=>{const k=(p.type==='freekick'?'FK|':'PK|')+p.infr;infr[k]=infr[k]||{home:0,away:0};infr[k][p.team]++;});
+  const zones={};infs.forEach(p=>{if(p.x==null)return;const z=zoneOf(p.x,p.y);zones[z.lz]=zones[z.lz]||{home:0,away:0,fhome:0,faway:0};zones[z.lz][(p.type==='freekick'?'f':'')+p.team]++;});
+  const details={};ev.filter(e=>e.type==='phase'&&e.detail).forEach(e=>e.detail.split(', ').forEach(d=>{const k=e.category+' › '+d;details[k]=(details[k]||0)+1;}));
+  const phases={};ev.filter(e=>e.type==='phase'||e.type==='video').forEach(e=>{const k=e.category;phases[k]=phases[k]||{'+':0,'-':0,'i':0};phases[k][e.tag]=(phases[k][e.tag]||0)+1;});
+  const tags={'+':0,'-':0,'i':0};ev.forEach(e=>{if(e.type!=='score')tags[e.tag]=(tags[e.tag]||0)+1});
+  const dec={'+':0,'-':0,'i':0};infs.forEach(p=>dec[p.tag]++);
+  const codes={};CODE_KEYS.forEach(k=>codes[k]={n:0,h1:0,h2:0,'+':0,'-':0,'i':0});const decs=ev.filter(e=>(e.codes||[]).length);
+  decs.forEach(e=>e.codes.forEach(k=>{const c=codes[k];if(!c)return;c.n++;c['h'+e.half]++;c[e.tag]++;}));
+  const sp={};['Scrum','Lineout'].forEach(c=>sp[c]={home:0,away:0,none:0,hp:0,hm:0,ap:0,am:0});
+  const so={};['Scrum','Lineout'].forEach(c=>so[c]={'Play on':0,'Reset':0,fk:{home:0,away:0},pk:{home:0,away:0},n:0});
+  ev.filter(e=>(e.type==='phase'||e.type==='decision')&&spCat(e.category)&&e.outcome).forEach(e=>{const o=so[spCat(e.category)];o.n++;if(e.outcome==='Free kick'||e.outcome==='Penalty'){if(e.against)o[e.outcome==='Penalty'?'pk':'fk'][e.against]++;}else o[e.outcome]++;});
+  ev.filter(e=>e.type==='phase'&&SETPIECE[e.category]).forEach(e=>{const c=sp[e.category==='Scrum'?'Scrum':'Lineout'];const t=e.team||'none';c[t]++;if(e.team){const k=(e.team==='home'?'h':'a')+(e.tag==='+'?'p':e.tag==='-'?'m':'');if(k.length===2)c[k]++;}});
+  return{so,sp,codes,decs,pens,fks,infs,pc,fc,cards,infr,zones,details,phases,tags,dec,sc:scores(m)};}
+const infLabel=k=>{const[t,n]=k.split('|');return{fk:t==='FK',name:n};};
+function heatInner(m=M()){const a=analysis(m);const cells={};let max=0;
+  a.infs.forEach(p=>{if(p.x==null)return;const cx=p.x<10?0:p.x<32?1:p.x<60?2:p.x<88?3:p.x<110?4:5,cy=p.y<15?0:p.y>55?2:1,k=cx+'_'+cy;cells[k]=(cells[k]||0)+1;max=Math.max(max,cells[k]);});
+  const xs=[0,10,32,60,88,110,120],ys=[0,15,55,70];let r='';
+  Object.entries(cells).forEach(([k,v])=>{const[cx,cy]=k.split('_').map(Number);r+=`<rect x="${xs[cx]}" y="${ys[cy]}" width="${xs[cx+1]-xs[cx]}" height="${ys[cy+1]-ys[cy]}" fill="#ffd400" opacity="${(0.12+0.5*v/max).toFixed(2)}"/><text x="${(xs[cx]+xs[cx+1])/2}" y="${ys[cy]+(cy===1?6:5)}" font-size="3.4" text-anchor="middle" fill="#fff" font-family="Barlow Condensed,sans-serif" font-weight="700">${v}</text>`;});
+  a.infs.forEach(p=>{if(p.x==null)return;const col=p.team==='home'?'var(--home)':'var(--away)',tt=`<title>${esc(fmt(p.t))} ${KIND[p.type]} v ${esc(teamName(p.team,m))}: ${esc(p.infr)}</title>`;
+    r+=p.type==='freekick'?`<rect x="${(p.x-1.8).toFixed(1)}" y="${(p.y-1.8).toFixed(1)}" width="3.6" height="3.6" fill="${col}" stroke="#fff" stroke-width=".5">${tt}</rect>`:`<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2" fill="${col}" stroke="#fff" stroke-width=".5">${tt}</circle>`;});
+  return r;}
+function barHTML(parts){const tot=parts.reduce((a,p)=>a+p[0],0)||1;return`<div class="bar">${parts.map(([v,c])=>`<span style="width:${v/tot*100}%;background:${c}"></span>`).join('')}</div>`;}
+function renderReview(){const m=M(),s=m.setup,a=analysis(m),avg=avgRating(m);renderMedia();
+  $('#kpis').innerHTML=[
+   ['Score',`<span class="c-home">${a.sc.home}</span>–<span class="c-away">${a.sc.away}</span>`],
+   ['Penalties H / A',`<span class="c-home">${a.pc.home}</span> / <span class="c-away">${a.pc.away}</span>`],
+   ['Free kicks H / A',`<span class="c-home">${a.fc.home}</span> / <span class="c-away">${a.fc.away}</span>`],
+   ['Cards',a.cards.length],
+   ['PK/FK decisions + / −',`<span style="color:var(--pos)">${a.dec['+']}</span> / <span style="color:var(--neg)">${a.dec['-']}</span>`],
+   ['Positive tags',`<span style="color:var(--pos)">${a.tags['+']}</span>`],['Work-on tags',`<span style="color:var(--neg)">${a.tags['-']}</span>`],['Competency avg',avg?avg.toFixed(1)+`<span class="muted" style="font-size:18px"> / ${s.scale}</span>`:'–']
+  ].map(([l,v])=>`<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div></div>`).join('');
+  $('#heatPitch').innerHTML=pitchSVG('heatSvg',heatInner(m),{left:s.home+' defends',right:s.away+' defends'});
+  $('#lgHome').textContent=s.home;$('#lgAway').textContent=s.away;
+  const inf=Object.entries(a.infr).sort((x,y)=>(y[1].home+y[1].away)-(x[1].home+x[1].away));
+  $('#penBreak').innerHTML=`<table class="tbl"><thead><tr><th></th><th class="c-home">${esc(s.home)}</th><th class="c-away">${esc(s.away)}</th></tr></thead><tbody>
+   <tr><td>Penalties · 1st half</td><td>${a.pc.home1}</td><td>${a.pc.away1}</td></tr><tr><td>Penalties · 2nd half</td><td>${a.pc.home2}</td><td>${a.pc.away2}</td></tr><tr><td><b>Penalties total</b></td><td><b>${a.pc.home}</b></td><td><b>${a.pc.away}</b></td></tr>
+   <tr><td>Free kicks · 1st half</td><td>${a.fc.home1}</td><td>${a.fc.away1}</td></tr><tr><td>Free kicks · 2nd half</td><td>${a.fc.home2}</td><td>${a.fc.away2}</td></tr><tr><td><b>Free kicks total</b></td><td><b>${a.fc.home}</b></td><td><b>${a.fc.away}</b></td></tr></tbody></table>
+   <h3 style="margin-top:14px">By infringement</h3>${inf.length?`<table class="tbl"><tbody>${inf.map(([k,v])=>{const L=infLabel(k);return`<tr><td><span class="kind-fk" title="${L.fk?'Free kick':'Penalty'}">${L.fk?'FK':'PK'}</span>${esc(L.name)}</td><td class="c-home">${v.home}</td><td class="c-away">${v.away}</td><td class="barcell" style="width:35%">${barHTML([[v.home,'var(--home)'],[v.away,'var(--away)']])}</td></tr>`}).join('')}</tbody></table>`:'<p class="empty">No penalties or free kicks logged.</p>'}`;
+  $('#dcKpis').innerHTML=CODE_KEYS.map(k=>{const c=a.codes[k];return`<div class="kpi"><div class="l">${k} · ${CODES[k]}</div><div class="v"><span class="pill code code-${k}" style="font-size:24px;height:34px;padding:0 10px">${c.n}</span></div><div class="muted small">1st ${c.h1} · 2nd ${c.h2} · <span style="color:var(--pos)">+${c['+']}</span> <span style="color:var(--neg)">−${c['-']}</span></div></div>`}).join('')
+    +(()=>{const h=a.codes.HID;return`<div class="kpi"><div class="l">HIDs rated correct</div><div class="v">${h.n?Math.round(h['+']/h.n*100)+'%':'–'}</div><div class="muted small">${h['+']} of ${h.n} tagged +</div></div>`})();
+  $('#dcList').innerHTML=a.decs.length?`<table class="tbl stack"><thead><tr><th>Time</th><th>Code</th><th>Event</th><th>Verdict</th><th>Note</th><th></th></tr></thead><tbody>${sortedEvents(m).filter(e=>(e.codes||[]).length).map(e=>`<tr><td class="tm">${timeLabel(e.t,e.half)}</td><td style="white-space:nowrap">${codePills(e)}</td><td><b>${esc(evTitle(e))}</b><div class="muted small">${esc(evDetail(e))}</div></td><td>${tagPill(e.tag)}</td><td>${esc(e.note)}</td><td><button class="btn sm" data-edit="${e.id}" aria-label="Edit">✎</button></td></tr>`).join('')}</tbody></table>`
+    :'<p class="empty">No decision notes (HID / ND / E / YC / RC) yet. Use the Decision notes buttons on the Live screen, or add a code to any entry.</p>';
+  const ph=Object.entries(a.phases).sort((x,y)=>(y[1]['+']+y[1]['-']+y[1].i)-(x[1]['+']+x[1]['-']+x[1].i));
+  $('#phaseBreak').innerHTML=ph.length?`<table class="tbl"><thead><tr><th>Phase</th><th style="color:var(--pos)">+</th><th style="color:var(--neg)">−</th><th style="color:var(--info)">i</th><th></th></tr></thead><tbody>${ph.map(([k,v])=>`<tr><td>${esc(k)}</td><td>${v['+']}</td><td>${v['-']}</td><td>${v.i}</td><td class="barcell" style="width:35%">${barHTML([[v['+'],'var(--pos)'],[v['-'],'var(--neg)'],[v.i,'var(--info)']])}</td></tr>`).join('')}</tbody></table>`:'<p class="empty">No phase entries yet.</p>';
+  const spRows=['Scrum','Lineout'].filter(c=>a.sp[c].home+a.sp[c].away+a.sp[c].none);
+  if(spRows.length)$('#phaseBreak').innerHTML+=`<h3 style="margin-top:14px">Set piece · who put in / threw in</h3><table class="tbl"><thead><tr><th></th><th class="c-home">${esc(s.home)}</th><th class="c-away">${esc(s.away)}</th><th>Not recorded</th></tr></thead><tbody>${spRows.map(c=>{const v=a.sp[c];return`<tr><td>${c} ${c==='Scrum'?'put-ins':'throw-ins'}</td><td>${v.home} <span class="muted small">(<span style="color:var(--pos)">+${v.hp}</span> <span style="color:var(--neg)">−${v.hm}</span>)</span></td><td>${v.away} <span class="muted small">(<span style="color:var(--pos)">+${v.ap}</span> <span style="color:var(--neg)">−${v.am}</span>)</span></td><td>${v.none}</td></tr>`}).join('')}</tbody></table><p class="muted small" style="margin:4px 0 0">+ / − = your tag on the referee's management of that set piece.</p>`;
+  const soRows=['Scrum','Lineout'].filter(c=>a.so[c].n);
+  if(soRows.length)$('#phaseBreak').innerHTML+=`<h3 style="margin-top:14px">Set piece · referee decisions</h3><table class="tbl"><thead><tr><th></th><th>Play on</th><th>Reset</th><th>Free kick against</th><th>Penalty against</th></tr></thead><tbody>${soRows.map(c=>{const o=a.so[c];return`<tr><td>${c}</td><td>${o['Play on']}</td><td>${o.Reset}</td><td><span class="c-home">${o.fk.home}</span> / <span class="c-away">${o.fk.away}</span></td><td><span class="c-home">${o.pk.home}</span> / <span class="c-away">${o.pk.away}</span></td></tr>`}).join('')}</tbody></table><p class="muted small" style="margin:4px 0 0">Against: <span class="c-home">${esc(s.home)}</span> / <span class="c-away">${esc(s.away)}</span></p>`;
+  const dt=Object.entries(a.details).sort((x,y)=>y[1]-x[1]);
+  if(dt.length)$('#phaseBreak').innerHTML+=`<h3 style="margin-top:14px">Phase detail · infringements &amp; descriptors</h3><table class="tbl"><tbody>${dt.map(([k,v])=>`<tr><td style="${k.includes('› + ')?'color:var(--pos)':k.includes('› − ')?'color:var(--neg)':''}">${esc(k)}</td><td style="text-align:right"><b>${v}</b></td></tr>`).join('')}</tbody></table>`;
+  const sc=SCALE[s.scale]||SCALE['5'];
+  $('#compBreak').innerHTML=`<table class="tbl"><tbody>${rubric(s).map(p=>{const r=m.ratings[p.id]||{};const lab=r.score?(sc.find(x=>x[0]===r.score)||[])[1]:'';return`<tr><td>${esc(p.name)}${r.feedback?`<div class="muted small">${esc(r.feedback)}</div>`:''}</td><td style="white-space:nowrap;text-align:right"><b style="font-family:var(--hd);font-size:20px">${r.score||'–'}</b> <span class="muted small">${lab||''}</span></td></tr>`}).join('')}</tbody></table><p style="margin:8px 0 0"><a class="btn sm" href="#rubric">Edit ratings</a></p>`;
+  $$('[data-sum]').forEach(t=>{if(document.activeElement!==t)t.value=m.summary[t.dataset.sum]||''});
+  $('#libNote').textContent=(!window.jspdf||!window.XLSX)?'Export libraries have not loaded (no connection on first open). Open the app once with internet so they are cached, then exports work offline.':'Exports include match details, competency ratings, decision notes (HID/ND/E/YC/RC), summary, full log and penalty/free kick map. Video files stay on the device; their references are included.';}
+$$('[data-sum]').forEach(t=>t.addEventListener('input',()=>{M().summary[t.dataset.sum]=t.value;save();}));
+
+/* ============ media: video links & images ============ */
+const IMG={cache:new Map(),key:id=>'img_'+id,
+  async get(id){if(this.cache.has(id))return this.cache.get(id);const v=await VID.get(this.key(id));if(v)this.cache.set(id,v);return v||null;},
+  async put(id,dataURL){this.cache.set(id,dataURL);return VID.put(this.key(id),dataURL);},
+  del(id){this.cache.delete(id);VID.del(this.key(id));}};
+const media=(m=M())=>{m.media=m.media||{links:[],images:[]};m.media.links=m.media.links||[];m.media.images=m.media.images||[];return m.media;};
+function normUrl(u){u=String(u||'').trim();if(!u)return'';if(!/^https?:\/\//i.test(u))u='https://'+u;try{const x=new URL(u);return/^https?:$/.test(x.protocol)?x.href:'';}catch(e){return'';}}
+function shrinkImage(file,max=1600,q=.82){return new Promise((res,rej)=>{const url=URL.createObjectURL(file);const im=new Image();im.onload=()=>{let w=im.naturalWidth,h=im.naturalHeight;const k=Math.min(1,max/Math.max(w,h));w=Math.round(w*k);h=Math.round(h*k);
+  const c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,w,h);g.drawImage(im,0,0,w,h);URL.revokeObjectURL(url);res({data:c.toDataURL('image/jpeg',q),w,h});};
+  im.onerror=()=>{URL.revokeObjectURL(url);rej(new Error('Could not read image'));};im.src=url;});}
+function moveItem(arr,i,d){const j=i+d;if(j<0||j>=arr.length)return;[arr[i],arr[j]]=[arr[j],arr[i]];}
+function renderMedia(){const md=media();
+  $('#lnkCount').textContent=md.links.length?md.links.length+' link'+(md.links.length>1?'s':''):'';
+  $('#lnkList').innerHTML=md.links.length?md.links.map((l,i)=>`<li><span class="mnum">${i+1}</span><div style="min-width:0"><input class="inl" type="text" data-ldesc="${l.id}" value="${esc(l.desc)}" placeholder="Brief description"><div class="url"><a href="${esc(l.url)}" target="_blank" rel="noopener noreferrer">${esc(l.url)}</a></div></div><div class="mbtns"><a class="btn" href="${esc(l.url)}" target="_blank" rel="noopener noreferrer" title="Open">↗</a><button class="btn" data-lmv="${i}" data-d="-1" title="Move up" ${i?'':'disabled'}>▲</button><button class="btn" data-lmv="${i}" data-d="1" title="Move down" ${i<md.links.length-1?'':'disabled'}>▼</button><button class="btn danger" data-ldel="${l.id}" title="Delete">🗑</button></div></li>`).join('')
+    :'<li class="empty" style="display:block">No clip links yet.</li>';
+  $('#imgCount').textContent=md.images.length?md.images.length+' image'+(md.images.length>1?'s':''):'';
+  $('#imgGrid').innerHTML=md.images.length?md.images.map((im,i)=>`<div class="icard"><div class="ph" data-iview="${im.id}"><img alt="Image ${i+1}" data-img="${im.id}"><span class="mnum">${i+1}</span></div><textarea data-idesc="${im.id}" placeholder="Brief description">${esc(im.desc)}</textarea><div class="mbtns"><button class="btn" data-imv="${i}" data-d="-1" ${i?'':'disabled'}>▲</button><button class="btn" data-imv="${i}" data-d="1" ${i<md.images.length-1?'':'disabled'}>▼</button><button class="btn danger" data-idel="${im.id}">🗑</button></div></div>`).join('')
+    :'<p class="empty" style="grid-column:1/-1">No images yet.</p>';
+  $$('#imgGrid img[data-img]').forEach(async el=>{const d=await IMG.get(el.dataset.img);if(d)el.src=d;else el.alt='Image not on this device';});}
+$('#lnkAdd').onclick=()=>{const u=normUrl($('#lnkUrl').value);if(!u){toast('Enter a valid web link (http/https)');return;}media().links.push({id:uid(),url:u,desc:$('#lnkDesc').value.trim()});$('#lnkUrl').value='';$('#lnkDesc').value='';save();renderMedia();toast('Link added');};
+$('#lnkUrl').addEventListener('keydown',e=>{if(e.key==='Enter')$('#lnkDesc').focus();});$('#lnkDesc').addEventListener('keydown',e=>{if(e.key==='Enter')$('#lnkAdd').click();});
+$('#lnkList').addEventListener('change',e=>{const t=e.target.closest('[data-ldesc]');if(!t)return;const l=media().links.find(x=>x.id===t.dataset.ldesc);if(l){l.desc=t.value.trim();save();}});
+$('#lnkList').addEventListener('click',async e=>{const mv=e.target.closest('[data-lmv]'),dl=e.target.closest('[data-ldel]');const md=media();
+  if(mv){moveItem(md.links,+mv.dataset.lmv,+mv.dataset.d);save();renderMedia();}
+  if(dl&&await confirmBox('Remove this clip link?','Remove')){md.links=md.links.filter(x=>x.id!==dl.dataset.ldel);save();renderMedia();}});
+$('#imgInput').addEventListener('change',async e=>{const files=[...(e.target.files||[])];e.target.value='';if(!files.length)return;let n=0,fail=0;
+  for(const f of files){try{const r=await shrinkImage(f);const id=uid();await IMG.put(id,r.data);media().images.push({id,desc:'',name:f.name||'image',w:r.w,h:r.h});n++;}catch(err){fail++;}}
+  save(true);renderMedia();toast(n?`${n} image${n>1?'s':''} added${fail?` (${fail} could not be read)`:''}`:'Those files could not be read as images');});
+$('#imgGrid').addEventListener('input',e=>{const t=e.target.closest('[data-idesc]');if(!t)return;const im=media().images.find(x=>x.id===t.dataset.idesc);if(im){im.desc=t.value;save();}});
+$('#imgGrid').addEventListener('click',async e=>{const mv=e.target.closest('[data-imv]'),dl=e.target.closest('[data-idel]'),vw=e.target.closest('[data-iview]');const md=media();
+  if(mv){moveItem(md.images,+mv.dataset.imv,+mv.dataset.d);save();renderMedia();}
+  if(dl&&await confirmBox('Remove this image?','Remove')){IMG.del(dl.dataset.idel);md.images=md.images.filter(x=>x.id!==dl.dataset.idel);save();renderMedia();}
+  if(vw){const i=md.images.findIndex(x=>x.id===vw.dataset.iview);const im=md.images[i];const d=await IMG.get(im.id);if(!d)return;openSheet(sheetHead(`Image ${i+1}`)+`<img src="${d}" alt="" style="width:100%;border-radius:10px;display:block"><p style="margin:10px 0 0">${esc(im.desc)||'<span class="muted">No description</span>'}</p>`);}});
+async function loadAllImages(m=M()){for(const im of media(m).images)await IMG.get(im.id);}
+
+/* ============ exports ============ */
+function summaryRows(m=M()){const s=m.setup,a=analysis(m);return[
+  ['Rugby Referee Coaching Report'],[],['Referee',s.referee],['Coach',s.coach],['Date',s.date],['Competition',s.competition],['Venue',s.venue],['Home',s.home],['Away',s.away],['Format',s.format],['Role',s.role==='AR'?'Assistant Referee':'Referee'],['Level',LEVELS[s.level]],['Half length (min)',+s.halfLength],
+  ['Final score',`${s.home} ${a.sc.home} – ${a.sc.away} ${s.away}`],['Penalties conceded',`${s.home} ${a.pc.home} – ${a.pc.away} ${s.away}`],['Free kicks conceded',`${s.home} ${a.fc.home} – ${a.fc.away} ${s.away}`],['Cards',a.cards.length],['High Impact Decisions (HID)',a.codes.HID.n],['No Decisions (ND)',a.codes.ND.n],['Errors (E)',a.codes.E.n],['Yellow Cards (YC)',a.codes.YC.n],['Scrum put-ins',`${s.home} ${a.sp.Scrum.home} – ${a.sp.Scrum.away} ${s.away}`],['Lineout throw-ins',`${s.home} ${a.sp.Lineout.home} – ${a.sp.Lineout.away} ${s.away}`],...['Scrum','Lineout'].map(c=>{const o=a.so[c];return[c+' decisions',`Play on ${o['Play on']} · Reset ${o.Reset} · FK v ${s.home} ${o.fk.home} / v ${s.away} ${o.fk.away} · PK v ${s.home} ${o.pk.home} / v ${s.away} ${o.pk.away}`];}),['Red Cards (RC)',a.codes.RC.n],['Stoppage time logged',fmtShort(injMs(m))]];}
+function exportXLSX(){if(!window.XLSX){toast('Excel library not loaded yet (needs one online visit)');return;}
+  const m=M(),s=m.setup,a=analysis(m),sc=SCALE[s.scale]||SCALE['5'];
+  const r1=summaryRows(m);r1.push([],['COMPETENCY SCORES','Rating',`Descriptor (scale 1–${s.scale})`,'Feedback']);
+  rubric(s).forEach(p=>{const r=m.ratings[p.id]||{};r1.push([p.name,r.score||'',r.score?(sc.find(x=>x[0]===r.score)||[])[1]:'',r.feedback||'']);});
+  const avg=avgRating(m);r1.push(['Average',avg?+avg.toFixed(2):'']);
+  r1.push([],['OVERALL SUMMARY'],['Strengths',m.summary.strengths],['Key areas to develop',m.summary.develop],['Action plan',m.summary.action]);
+  const ws1=XLSX.utils.aoa_to_sheet(r1);ws1['!cols']=[{wch:34},{wch:44},{wch:20},{wch:60}];
+  const r2=[['#','Half','Match time','Seconds','Type','Category / Event','Tag','Decision code','Team','Detail','Note','Video ref']];
+  sortedEvents(m).forEach((e,i)=>r2.push([i+1,e.half,timeLabel(e.t,e.half,m),Math.round(e.t/1000),e.type,evTitle(e),TAGN[e.tag]||'',codeTxt(e),teamName(e.team,m),evDetail(e),e.note||'',e.type==='video'?`${e.fileName||''} (${e.videoId})`:'']));
+  const ws2=XLSX.utils.aoa_to_sheet(r2);ws2['!cols']=[{wch:5},{wch:5},{wch:11},{wch:8},{wch:9},{wch:30},{wch:10},{wch:12},{wch:20},{wch:34},{wch:60},{wch:30}];
+  const r3=[['#','Half','Match time','Award','Conceded by','Infringement','Sanction','Card','Sin-bin return (match time)','Coach verdict','Metres from home try line','Metres from top touchline','Length zone','Channel','Note']];
+  sortedEvents(m).filter(isInf).forEach((p,i)=>{const z=p.x!=null?zoneOf(p.x,p.y):null;r3.push([i+1,p.half,timeLabel(p.t,p.half,m),KIND[p.type],teamName(p.team,m),p.infr,p.sanction,cardOf(p),cardOf(p)==='YC'?retLabel(p,m):cardOf(p)==='RC'?'Sent off':'',TAGN[p.tag],p.x!=null?Math.round(p.x-10):'',p.y!=null?Math.round(p.y):'',z?z.lz:'',z?z.ch:'',p.note||'']);});
+  r3.push([],['ZONE SUMMARY','PK '+s.home,'PK '+s.away,'FK '+s.home,'FK '+s.away]);['Home in-goal','Home 22','Home half (22–50)','Away half (50–22)','Away 22','Away in-goal'].forEach(z=>{const v=a.zones[z]||{home:0,away:0,fhome:0,faway:0};r3.push([z,v.home,v.away,v.fhome,v.faway]);});
+  r3.push([],['Zones are relative to the pitch with '+s.home+' defending the left try line (2nd-half taps are normalised).']);
+  const ws3=XLSX.utils.aoa_to_sheet(r3);ws3['!cols']=[{wch:18},{wch:6},{wch:11},{wch:10},{wch:22},{wch:30},{wch:12},{wch:6},{wch:22},{wch:12},{wch:12},{wch:12},{wch:18},{wch:12},{wch:50}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws1,'Match Summary & Scores');XLSX.utils.book_append_sheet(wb,ws2,'Phase & Stats Log');XLSX.utils.book_append_sheet(wb,ws3,'Penalty & FK Log, Zones');
+  const r4=[['Decision notes: '+codeLegend],[],['Code','Total','1st half','2nd half','Rated +','Rated -','Note only']];
+  CODE_KEYS.forEach(k=>{const c=a.codes[k];r4.push([k+' ('+CODES[k]+')',c.n,c.h1,c.h2,c['+'],c['-'],c.i]);});
+  r4.push([],['#','Half','Match time','Code(s)','Event','Team','Coach verdict','Detail','Note']);
+  sortedEvents(m).filter(e=>(e.codes||[]).length).forEach((e,i)=>r4.push([i+1,e.half,timeLabel(e.t,e.half,m),codeTxt(e),evTitle(e),teamName(e.team,m),TAGN[e.tag]||'',evDetail(e),e.note||'']));
+  const ws4=XLSX.utils.aoa_to_sheet(r4);ws4['!cols']=[{wch:30},{wch:7},{wch:11},{wch:10},{wch:34},{wch:20},{wch:12},{wch:34},{wch:60}];
+  XLSX.utils.book_append_sheet(wb,ws4,'Decision Notes');
+  const md=media(m);const r5=[['VIDEO CLIP LINKS'],['#','Description','URL']];md.links.forEach((l,i)=>r5.push([i+1,l.desc||'',l.url]));if(!md.links.length)r5.push(['','None added','']);
+  const imgHead=r5.length+1;r5.push([],['IMAGES (embedded in the PDF report)'],['#','Description','File name']);md.images.forEach((im,i)=>r5.push([i+1,im.desc||'',im.name||'']));if(!md.images.length)r5.push(['','None added','']);
+  const ws5=XLSX.utils.aoa_to_sheet(r5);ws5['!cols']=[{wch:5},{wch:60},{wch:70}];md.links.forEach((l,i)=>{const c=ws5['C'+(i+3)];if(c)c.l={Target:l.url,Tooltip:l.desc||l.url};});
+  XLSX.utils.book_append_sheet(wb,ws5,'Video Links & Images');
+  const out=XLSX.write(wb,{bookType:'xlsx',type:'array'});saveFile(fileBase(m)+'.xlsx',new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');}
+function drawPitchPDF(doc,x0,y0,w,m){const k=w/120,h=70*k,X=x=>x0+x*k,Y=y=>y0+y*k;
+  doc.setFillColor(31,122,63);doc.rect(x0,y0,w,h,'F');doc.setFillColor(24,100,50);doc.rect(x0,y0,10*k,h,'F');doc.rect(X(110),y0,10*k,h,'F');
+  const a=analysis(m),cells={};let max=0;a.infs.forEach(p=>{if(p.x==null)return;const cx=p.x<10?0:p.x<32?1:p.x<60?2:p.x<88?3:p.x<110?4:5,cy=p.y<15?0:p.y>55?2:1,kk=cx+'_'+cy;cells[kk]=(cells[kk]||0)+1;max=Math.max(max,cells[kk]);});
+  const xs=[0,10,32,60,88,110,120],ys=[0,15,55,70];
+  Object.entries(cells).forEach(([kk,v])=>{const[cx,cy]=kk.split('_').map(Number);const t=v/max;doc.setFillColor(Math.round(31+(255-31)*t*.75),Math.round(122+(212-122)*t*.75),Math.round(63*(1-t*.75)));doc.rect(X(xs[cx]),Y(ys[cy]),(xs[cx+1]-xs[cx])*k,(ys[cy+1]-ys[cy])*k,'F');});
+  doc.setDrawColor(255,255,255);doc.setLineWidth(.35);doc.rect(x0,y0,w,h);[10,110,60].forEach(x=>doc.line(X(x),y0,X(x),y0+h));doc.setLineWidth(.25);[32,88].forEach(x=>doc.line(X(x),y0,X(x),y0+h));
+  doc.setLineDashPattern([1,1],0);[50,70].forEach(x=>doc.line(X(x),y0,X(x),y0+h));[5,15,55,65].forEach(y=>doc.line(X(10),Y(y),X(110),Y(y)));doc.setLineDashPattern([],0);
+  doc.setTextColor(255,255,255);doc.setFontSize(7);Object.entries(cells).forEach(([kk,v])=>{const[cx,cy]=kk.split('_').map(Number);doc.text(String(v),X((xs[cx]+xs[cx+1])/2),Y(ys[cy]+(cy===1?5:4)),{align:'center'});});
+  a.infs.forEach(p=>{if(p.x==null)return;if(p.team==='home')doc.setFillColor(0,90,220);else doc.setFillColor(220,60,20);doc.setDrawColor(255,255,255);doc.setLineWidth(.3);if(p.type==='freekick')doc.rect(X(p.x)-1.2,Y(p.y)-1.2,2.4,2.4,'FD');else doc.circle(X(p.x),Y(p.y),1.3,'FD');});
+  doc.setTextColor(40,40,40);doc.setFontSize(8);doc.text(`< ${m.setup.home} defends`,x0,y0-1.5);doc.text(`${m.setup.away} defends >`,x0+w,y0-1.5,{align:'right'});
+  doc.setFillColor(0,90,220);doc.circle(x0+2,y0+h+4,1.3,'F');doc.text(`${m.setup.home} conceded (PK ${a.pc.home})`,x0+5,y0+h+5);doc.setFillColor(220,60,20);doc.circle(x0+62,y0+h+4,1.3,'F');doc.text(`${m.setup.away} conceded (PK ${a.pc.away})`,x0+65,y0+h+5);doc.text(`Circle = penalty, square = free kick (FK ${a.fc.home}–${a.fc.away})`,x0+w,y0+h+5,{align:'right'});
+  return h+8;}
+async function exportPDF(){if(window.jspdf)await loadAllImages();if(!window.jspdf){toast('PDF library not loaded yet (needs one online visit)');return;}
+  const{jsPDF}=window.jspdf;const doc=new jsPDF({unit:'mm',format:'a4'});if(typeof doc.autoTable!=='function'){toast('PDF table plugin not loaded yet');return;}const m=M(),s=m.setup,a=analysis(m),sc=SCALE[s.scale]||SCALE['5'];const W=210,ML=14,CW=W-2*ML;
+  const green=[0,107,60];
+  doc.setFillColor(...green);doc.rect(0,0,W,26,'F');doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(18);doc.text('Referee Coaching Report',ML,12);
+  doc.setFont('helvetica','normal');doc.setFontSize(10);doc.text(`${s.home} v ${s.away}  ·  ${s.date}  ·  ${s.competition||''}`,ML,19.5);
+  doc.setFontSize(9);doc.text(`${s.format} · ${s.role==='AR'?'Assistant Referee':'Referee'} · ${LEVELS[s.level]}`,W-ML,12,{align:'right'});
+  let y=32;const tblOpts={theme:'grid',styles:{fontSize:8.5,cellPadding:1.8,lineColor:[210,215,213],textColor:[20,20,20]},headStyles:{fillColor:green,textColor:255,fontStyle:'bold'},margin:{left:ML,right:ML}};
+  doc.autoTable(Object.assign({},tblOpts,{startY:y,theme:'plain',styles:{fontSize:9,cellPadding:1.3},columnStyles:{0:{fontStyle:'bold',cellWidth:32},2:{fontStyle:'bold',cellWidth:32}},
+    body:[['Referee',s.referee||'—','Coach',s.coach||'—'],['Competition',s.competition||'—','Venue',s.venue||'—'],['Final score',`${s.home} ${a.sc.home} – ${a.sc.away} ${s.away}`,'Penalties',`${s.home} ${a.pc.home} – ${a.pc.away} ${s.away}`],['Free kicks',`${s.home} ${a.fc.home} – ${a.fc.away} ${s.away}`,'Cards',String(a.cards.length)],['Competency avg',avgRating(m)?avgRating(m).toFixed(1)+' / '+s.scale:'—','','']]}));
+  y=doc.lastAutoTable.finalY+8;doc.setTextColor(0,0,0);doc.setFont('helvetica','bold');doc.setFontSize(12);doc.text('Penalty & free kick map',ML,y);y+=5;
+  y+=drawPitchPDF(doc,ML,y+2,CW,m)+4;
+  doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(0,0,0);doc.text('Competency ratings',ML,y);
+  doc.autoTable(Object.assign({},tblOpts,{startY:y+2,head:[['Competency','Rating','Descriptor','Feedback']],columnStyles:{0:{cellWidth:48,fontStyle:'bold'},1:{cellWidth:14,halign:'center'},2:{cellWidth:24}},
+    body:rubric(s).map(p=>{const r=m.ratings[p.id]||{};return[p.name,r.score?String(r.score):'–',r.score?(sc.find(x=>x[0]===r.score)||[])[1]:'',r.feedback||''];})}));
+  y=doc.lastAutoTable.finalY+8;
+  doc.autoTable(Object.assign({},tblOpts,{startY:y,head:[['Overall summary','']],columnStyles:{0:{cellWidth:40,fontStyle:'bold'}},body:[['Strengths',m.summary.strengths||'—'],['Key areas to develop',m.summary.develop||'—'],['Action plan',m.summary.action||'—']]}));
+  y=doc.lastAutoTable.finalY+8;
+  const cl=sortedEvents(m).filter(e=>cardOf(e));
+  if(cl.length){doc.autoTable(Object.assign({},tblOpts,{startY:y,head:[['Card','Time awarded','Half','Team','Infringement / note','Sin-bin return']],columnStyles:{0:{cellWidth:14,fontStyle:'bold'},1:{cellWidth:24},2:{cellWidth:12}},
+    body:cl.map(e=>[cardOf(e),timeLabel(e.t,e.half,m),e.half,teamName(e.team,m)||'—',e.infr||e.note||'',cardOf(e)==='YC'?retLabel(e,m):'Sent off']),
+    didParseCell:d=>{if(d.section==='body'&&d.column.index===0){d.cell.styles.fillColor=d.cell.raw==='RC'?[200,0,0]:[255,214,10];d.cell.styles.textColor=d.cell.raw==='RC'?255:0;}}}));y=doc.lastAutoTable.finalY+8;}
+  const dl=sortedEvents(m).filter(e=>(e.codes||[]).length);
+  doc.autoTable(Object.assign({},tblOpts,{startY:y,head:[[{content:`Decision notes: ${codeSumm(a)}   (${codeLegend})`,colSpan:5}]],body:[['Time','Code','Event','Verdict','Note']].concat(dl.length?dl.map(e=>[timeLabel(e.t,e.half,m),codeTxt(e),evTitle(e),TAGN[e.tag]||'',e.note||'']):[['','','None logged','','']]),
+    columnStyles:{0:{cellWidth:18},1:{cellWidth:18,fontStyle:'bold'},2:{cellWidth:46},3:{cellWidth:18}},didParseCell:d=>{if(d.section==='body'&&d.row.index===0){d.cell.styles.fontStyle='bold';d.cell.styles.fillColor=[235,240,238];}}}));
+  y=doc.lastAutoTable.finalY+8;
+  const inf=Object.entries(a.infr).sort((x,z)=>(z[1].home+z[1].away)-(x[1].home+x[1].away));
+  if(inf.length)doc.autoTable(Object.assign({},tblOpts,{startY:y,head:[['Award','Infringement',s.home,s.away]],columnStyles:{0:{cellWidth:22},2:{halign:'center',cellWidth:28},3:{halign:'center',cellWidth:28}},body:inf.map(([k,v])=>{const L=infLabel(k);return[L.fk?'Free kick':'Penalty',L.name,v.home,v.away];})}));
+  if(a.sp.Scrum.home+a.sp.Scrum.away+a.sp.Lineout.home+a.sp.Lineout.away){y=doc.lastAutoTable.finalY+8;doc.autoTable(Object.assign({},tblOpts,{startY:y,head:[['Set piece',s.home,s.away,'Not recorded']],columnStyles:{1:{halign:'center'},2:{halign:'center'},3:{halign:'center'}},body:[['Scrum put-ins',a.sp.Scrum.home,a.sp.Scrum.away,a.sp.Scrum.none],['Lineout throw-ins',a.sp.Lineout.home,a.sp.Lineout.away,a.sp.Lineout.none]]}));}
+  if(a.so.Scrum.n+a.so.Lineout.n){y=doc.lastAutoTable.finalY+8;doc.autoTable(Object.assign({},tblOpts,{startY:y,head:[['Set piece decisions','Play on','Reset','FK v '+s.home,'FK v '+s.away,'PK v '+s.home,'PK v '+s.away]],columnStyles:{1:{halign:'center'},2:{halign:'center'},3:{halign:'center'},4:{halign:'center'},5:{halign:'center'},6:{halign:'center'}},body:['Scrum','Lineout'].map(c=>{const o=a.so[c];return[c,o['Play on'],o.Reset,o.fk.home,o.fk.away,o.pk.home,o.pk.away];})}));}
+  const ph=Object.entries(a.phases);if(ph.length){y=doc.lastAutoTable?doc.lastAutoTable.finalY+8:y;doc.autoTable(Object.assign({},tblOpts,{startY:y,head:[['Phase','Positive (+)','Work-on (-)','Note (i)']],columnStyles:{1:{halign:'center'},2:{halign:'center'},3:{halign:'center'}},body:ph.map(([k,v])=>[k,v['+'],v['-'],v.i])}));}
+  const md=media(m);
+  if(md.links.length||md.images.length){doc.addPage();let yy=16;doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(0,0,0);
+    if(md.links.length){doc.text('Video clip links',ML,yy);yy+=7;doc.setFontSize(9.5);
+      md.links.forEach((l,i)=>{if(yy>270){doc.addPage();yy=16;}doc.setFont('helvetica','bold');doc.setTextColor(0,0,0);const d=doc.splitTextToSize(`${i+1}. ${l.desc||'(no description)'}`,CW);doc.text(d,ML,yy);yy+=d.length*4.3;
+        doc.setFont('helvetica','normal');doc.setTextColor(0,90,200);const u=doc.splitTextToSize(l.url,CW-4);u.forEach(line=>{doc.textWithLink(line,ML+4,yy,{url:l.url});yy+=4.3;});yy+=2.5;});
+      yy+=4;doc.setTextColor(0,0,0);}
+    if(md.images.length){if(yy>240){doc.addPage();yy=16;}doc.setFont('helvetica','bold');doc.setFontSize(12);doc.text('Images',ML,yy);yy+=5;
+      const colW=(CW-6)/2;let col=0,rowH=0;
+      md.images.forEach((im,i)=>{const d=IMG.cache.get(im.id);const ratio=(im.h&&im.w)?im.h/im.w:0.75;const ih=Math.min(colW*ratio,95),iw=ih/ratio;
+        doc.setFont('helvetica','normal');doc.setFontSize(9);const cap=doc.splitTextToSize(`${i+1}. ${im.desc||'(no description)'}`,colW);const need=ih+cap.length*4+6;
+        if(col===0&&yy+need>282){doc.addPage();yy=16;}
+        const x=ML+col*(colW+6);if(d){try{doc.addImage(d,'JPEG',x,yy,iw,ih);}catch(err){doc.text('(image could not be added)',x,yy+5);}}else doc.text('(image not on this device)',x,yy+5);
+        doc.setTextColor(0,0,0);doc.text(cap,x,yy+ih+4.5);rowH=Math.max(rowH,need);
+        if(col===1){yy+=rowH+3;rowH=0;col=0;}else col=1;});}
+  }
+  doc.addPage();doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(0,0,0);doc.text('Timestamped match log',ML,16);
+  doc.autoTable(Object.assign({},tblOpts,{startY:20,head:[['Time','H','Event','Tag','Code','Detail','Note']],columnStyles:{0:{cellWidth:18},1:{cellWidth:7},2:{cellWidth:38},3:{cellWidth:16},4:{cellWidth:14,fontStyle:'bold'},5:{cellWidth:36}},
+    body:sortedEvents(m).map(e=>[timeLabel(e.t,e.half,m),e.half,evTitle(e),TAGN[e.tag]||'',codeTxt(e),evDetail(e),e.note||'']),
+    didParseCell:d=>{if(d.section==='body'&&d.column.index===3){const t=d.cell.raw;d.cell.styles.textColor=t==='Positive'?[6,112,44]:t==='Work-on'?[190,0,0]:[120,90,0];d.cell.styles.fontStyle='bold';}}}));
+  const n=doc.getNumberOfPages();for(let i=1;i<=n;i++){doc.setPage(i);doc.setFontSize(8);doc.setTextColor(120);doc.text(`${s.referee||'Referee'} · ${s.home} v ${s.away} · ${s.date}`,ML,290);doc.text(`Page ${i} of ${n}`,W-ML,290,{align:'right'});}
+  saveFile(fileBase(m)+'.pdf',doc.output('blob'),'application/pdf');}
+function summaryText(m=M()){const s=m.setup,a=analysis(m),sc=SCALE[s.scale]||SCALE['5'];const L=[];
+  L.push(`REFEREE COACHING REPORT — ${s.home} v ${s.away} (${s.date})`,`Referee: ${s.referee||'—'} | Coach: ${s.coach||'—'} | ${s.competition||''}`,`${s.format} · ${s.role==='AR'?'Assistant Referee':'Referee'} · ${LEVELS[s.level]}`,`Score: ${s.home} ${a.sc.home} – ${a.sc.away} ${s.away} | Penalties: ${a.pc.home} – ${a.pc.away} | Free kicks: ${a.fc.home} – ${a.fc.away} | Scrum put-ins: ${a.sp.Scrum.home} – ${a.sp.Scrum.away} | Lineout throw-ins: ${a.sp.Lineout.home} – ${a.sp.Lineout.away} | Scrum resets: ${a.so.Scrum.Reset} | Lineout resets: ${a.so.Lineout.Reset} | Cards: ${a.cards.length}`,'','COMPETENCIES');
+  rubric(s).forEach(p=>{const r=m.ratings[p.id]||{};L.push(`- ${p.name}: ${r.score||'–'}${r.score?' ('+(sc.find(x=>x[0]===r.score)||[])[1]+')':''}${r.feedback?' — '+r.feedback:''}`)});
+  L.push('',`STRENGTHS: ${m.summary.strengths||'—'}`,`KEY AREAS TO DEVELOP: ${m.summary.develop||'—'}`,`ACTION PLAN: ${m.summary.action||'—'}`,'',`DECISION NOTES (${codeSumm(a)})`);
+  sortedEvents(m).filter(e=>(e.codes||[]).length).forEach(e=>L.push(`- ${timeLabel(e.t,e.half,m)} [${codeTxt(e)}] ${evTitle(e)}${e.note?': '+e.note:''}`));{const md=media(m);if(md.links.length){L.push('','VIDEO CLIP LINKS');md.links.forEach((l,i)=>L.push(`${i+1}. ${l.desc||''} — ${l.url}`));}if(md.images.length){L.push('',`IMAGES: ${md.images.length} (see PDF report)`);md.images.forEach((im,i)=>L.push(`${i+1}. ${im.desc||''}`));}}L.push('','CARDS');sortedEvents(m).filter(e=>cardOf(e)).forEach(e=>L.push(`- ${cardOf(e)} ${timeLabel(e.t,e.half,m)} (H${e.half}) ${teamName(e.team,m)||''}${e.infr?' · '+e.infr:''}${cardOf(e)==='YC'?' · back '+retLabel(e,m):' · sent off'}`));L.push('','WORK-ON MOMENTS');
+  sortedEvents(m).filter(e=>e.tag==='-').forEach(e=>L.push(`- ${timeLabel(e.t,e.half,m)} ${evTitle(e)}${e.note?': '+e.note:''}`));return L.join('\n');}
+$('#xlsxBtn').onclick=exportXLSX;$('#pdfBtn').onclick=exportPDF;
+$('#copyBtn').onclick=()=>{const t=summaryText();try{navigator.clipboard.writeText(t).then(()=>toast('Summary copied'),()=>showCopy(t));}catch(e){showCopy(t)}};
+function showCopy(t){openSheet(sheetHead('Summary text')+`<textarea style="min-height:300px" readonly>${esc(t)}</textarea><p class="muted small">Select all and copy.</p>`);}
+$('#backupBtn').onclick=async()=>{const m=M();await loadAllImages(m);const images={};media(m).images.forEach(im=>{const d=IMG.cache.get(im.id);if(d)images[im.id]=d;});saveFile(fileBase()+'_backup.json',JSON.stringify({app:'rrc',v:2,match:m,images},null,1),'application/json');};
+$('#restoreInput').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;try{const j=JSON.parse(await f.text());const m=j.match||j;if(!m.setup||!Array.isArray(m.events))throw 0;m.id=uid();if(j.images)for(const[k,v]of Object.entries(j.images))await IMG.put(k,v);store.matches[m.id]=m;store.currentId=m.id;save(true);renderAll();toast('Backup restored as a new match');}catch(err){toast('That file is not a Referee Coach backup');}e.target.value='';});
+
+/* ============ boot ============ */
+function renderAll(){renderLive();renderClock();const v=(location.hash||'').slice(1);if(v==='setup'||!v)renderSetup();if(v==='stats')renderLog();if(v==='rubric')renderRubric();if(v==='video')renderVideo();if(v==='review')renderReview();}
+try{if('serviceWorker' in navigator&&location.protocol==='https:'&&!window.claude){navigator.serviceWorker.register('sw.js').catch(()=>{});}
+M();applyTheme();updSaveDot();renderLive();renderClock();route();}
+catch(err){console.error(err);document.querySelector('main').innerHTML=`<div class="card"><h2>Something went wrong opening your saved data</h2><p class="muted">Your matches are still saved in this browser. Download a backup first, then you can clear the saved data and start again (restore the backup from the Review tab afterwards).</p><p class="small muted">${esc(err&&err.message)}</p><div class="row"><button class="btn pri" id="rcvBk">Download backup</button><button class="btn danger" id="rcvClr">Clear saved data</button></div></div>`;
+  document.getElementById('rcvBk').onclick=()=>saveFile('RefCoach_all_matches_backup.json',JSON.stringify(store,null,1),'application/json');
+  document.getElementById('rcvClr').onclick=()=>{try{localStorage.removeItem(LS_KEY)}catch(e){}location.reload();};}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){renderClock();if(M().clock.running)wake(true);}});
+</script>
+</body>
+</html>
